@@ -32,7 +32,7 @@ BMX Build Agent is a web app that helps riders plan, check, price and preview a 
 
 Planning a build is a step-by-step search where every choice affects the next one. The frame decides the bottom bracket type, which limits the cranks, which changes how much budget is left for everything else. Requests are open-ended and different for every rider, so a fixed form can't handle them.
 
-An agent fits this well. The LLM reads the request, picks which tool to use next, looks at the result and adjusts its plan. Anything that has to be correct (compatibility, prices, totals) is done by normal code that the agent calls as a tool. The LLM is never trusted for facts the system can look up, and every build it suggests is checked by the compatibility checker before the user sees it.
+An agent fits this well. The LLM reads the request, picks which tool to use next, looks at the result and adjusts its plan. Anything that has to be correct (compatibility, prices, totals) is done by deterministic code that the agent calls as a tool. The LLM is never trusted for facts the system can look up, and every build it suggests is checked by the compatibility checker before the user sees it.
 
 #### AI Model
 
@@ -62,7 +62,7 @@ The GUI follows **MVC**. React components are the View, the REST controllers are
 2. The LLM answers with either a final answer or a tool call (tool name plus JSON arguments).
 3. The orchestrator runs that tool and adds the result to the conversation.
 4. Steps 2 and 3 repeat until the LLM gives a final answer or hits the step limit.
-5. The final answer (for example a proposed build) is turned into Java objects and checked by normal code before it goes back to the GUI or CLI.
+5. The final answer (for example a proposed build) is turned into Java objects and checked by deterministic code before it goes back to the GUI or CLI.
 
 #### GUI and CLI
 
@@ -100,7 +100,7 @@ bmx upgrade <buildId> --budget 300   # F11 upgrade plan
 | **User interaction** | On the *Build* page the user types into *Plan My Build*. The panel shows what the agent is doing ("Searching frames", "Checking compatibility"). The finished build opens in the configurator where the user can change it. |
 | **Input** | Request text, rider profile (if saved), and things like budget, style, brakes and parts already owned |
 | **Output** | A full build with a part in every slot, total price, a short reason per part, trade-offs, and the agent's step log |
-| **AI involvement** | AI (agent using normal-code tools) |
+| **AI involvement** | AI (agent using deterministic tools) |
 | **Workflow** | 1. User submits the request. 2. The orchestrator loads the profile and builds the prompt. 3. The LLM pulls out the constraints and plans the build, or asks a question if something important (like budget) is missing. 4. For each slot the agent searches the catalog, picks a part, checks it fits and gets prices. 5. If something conflicts or goes over budget, the LLM changes its picks. 6. The final build is checked by the compatibility checker and against the budget. 7. The build and reasons are shown. |
 | **Errors and alternatives** | Too vague: the agent asks a follow-up. Nothing fits: the agent says which limit is blocking and suggests loosening it. Step limit hit: the best partial build is returned with empty slots flagged. LLM names a part that doesn't exist: the tool returns an error and the agent fixes it. Final check fails: the build isn't shown as complete and the issues are listed. LLM down: an error is shown and the manual configurator (F04) is offered. |
 
@@ -209,7 +209,7 @@ bmx upgrade <buildId> --budget 300   # F11 upgrade plan
 | **Input** | Current bike (parts or description), budget, rider profile |
 | **Output** | Upgrade plan with stages, parts, cost per stage and reasons, all checked for compatibility |
 | **AI involvement** | Hybrid |
-| **Workflow** | 1. If the bike is described in text, the LLM matches it to catalog parts and the user confirms. 2. Upgrade options are scored by normal code. 3. The agent groups upgrades into stages and keeps dependent parts together (three-piece cranks may also need a new bottom bracket). 4. Each stage is checked for compatibility. 5. The plan is shown. |
+| **Workflow** | 1. If the bike is described in text, the LLM matches it to catalog parts and the user confirms. 2. Upgrade options are scored by deterministic code. 3. The agent groups upgrades into stages and keeps dependent parts together (three-piece cranks may also need a new bottom bracket). 4. Each stage is checked for compatibility. 5. The plan is shown. |
 | **Errors and alternatives** | A described part can't be matched: the user picks from the closest matches. The frame is the limit (for example an old bottom bracket standard): the agent explains and may suggest a new frame as a stage. Budget too low: the single cheapest high-impact upgrade is suggested. LLM down: a ranked list is shown without stages. |
 
 ---
@@ -244,9 +244,9 @@ Two things are left out on purpose to keep it readable.
 #### Main Design Decisions
 
 - **One entry point.** The REST controllers and the CLI only talk to `BuildService`, so the GUI and CLI always behave the same.
-- **The agent only acts through tools.** `AgentOrchestrator` can't touch data directly. It can only run `AgentTool`s from the `ToolRegistry`, and each tool wraps one normal-code service (catalog, compatibility, prices, knowledge base).
+- **The agent only acts through tools.** `AgentOrchestrator` can't touch data directly. It can only run `AgentTool`s from the `ToolRegistry`, and each tool wraps one deterministic service (catalog, compatibility, prices, knowledge base).
 - **The LLM provider can be swapped.** `AgentOrchestrator` depends on the `LLMClient` interface, not on Groq.
-- **Anything that must be right is normal code.** `CompatibilityChecker`, `PriceService` and the price and weight totals are plain Java and easy to unit test. The LLM suggests, the code checks.
+- **Anything that must be right is deterministic code.** `CompatibilityChecker`, `PriceService` and the price and weight totals are plain Java and easy to unit test. The LLM suggests, the code checks.
 
 #### Design Patterns
 
@@ -494,7 +494,7 @@ Calls from a React component to a controller are HTTP requests to the REST API. 
 | SD05 | F07, UC07 | Strategy ranking, compatibility filtering, the agent's explanation and the final check |
 | SD06 | F09, UC09 | Answering with retrieval and memory, plus fallbacks |
 | SD07 | F10, UC10 | Saving with duplicate-name handling, and side-by-side comparison |
-| SD08 | F11, UC11 | Agent part matching, scoring options with normal code, agent staging, and checking each stage |
+| SD08 | F11, UC11 | Agent part matching, scoring options with deterministic code, agent staging, and checking each stage |
 
 #### SD01 Get Style Recommendation and Save Profile
 ![SD01](diagrams/SD01_StyleRecommendation.png)
