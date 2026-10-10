@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>2910</w>
+      <h>1730</h>
+    </coordinates>
+    <panel_attributes>title=SD06: Ask a BMX Question (F09, UC09)
+obj=Rider~r ACTOR
+obj=:ChatPanel~ui
+obj=:AgentController~ctl
+obj=:BuildService~svc
+obj=:BuildRepository~brepo
+obj=:AgentOrchestrator~orch
+obj=:ConversationMemory~mem
+obj=:ToolRegistry~reg
+obj=:RetrieveKnowledgeTool~rkt
+obj=:KnowledgeRetriever~kr
+obj=:GroqClient~llm
+r-&gt;&gt;&gt;ui : sendQuestion(text, includeBuild); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : ask(req); on=ctl
+ctl-&gt;&gt;&gt;svc : askQuestion(userId, question, buildId); on=svc
+combinedFragment=opt~ib svc brepo
+svc:[includeBuild]
+svc-&gt;&gt;&gt;brepo : findById(buildId); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+--=ib
+svc-&gt;&gt;&gt;orch : run(task: QUESTION); on=orch
+orch-&gt;&gt;&gt;mem : recent(userId, 10); on=mem
+mem.&gt;orch : List&lt;ChatMessage&gt;; off=mem
+orch-&gt;&gt;&gt;reg : execute(retrieve_knowledge call); on=reg
+reg-&gt;&gt;&gt;rkt : execute(args); on=rkt
+rkt-&gt;&gt;&gt;kr : retrieve(question, 5); on=kr
+kr.&gt;rkt : List&lt;KnowledgeDoc&gt;; off=kr
+rkt.&gt;reg : ToolResult; off=rkt
+reg.&gt;orch : ToolResult(docs); off=reg
+combinedFragment=alt~d orch llm
+orch:[no relevant docs]
+orch-&gt;orch + : answer "no reliable info"
+..=d
+orch:[docs found]
+orch-&gt;&gt;&gt;llm : complete(question + docs + build); on=llm
+combinedFragment=alt~u orch llm
+llm:[OK]
+llm.&gt;orch : LLMResponse(answer + citations); off=llm
+..=u; on=llm
+llm:[unavailable]
+llm.&gt;orch : LLMUnavailableException; off=llm
+orch-&gt;orch + : return top articles only
+--=u
+--=d
+orch-&gt;&gt;&gt;mem : append(userId, answer); on=mem
+off=mem; orch.&gt;svc : AgentResult; off=orch
+svc.&gt;ctl : AgentAnswer; off=svc
+ctl.&gt;ui : AgentAnswer; off=ctl
+ui.&gt;r : answer with source links; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

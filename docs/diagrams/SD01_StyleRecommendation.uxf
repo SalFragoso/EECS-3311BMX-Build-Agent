@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>3270</w>
+      <h>1850</h>
+    </coordinates>
+    <panel_attributes>title=SD01: Get Style Recommendation and Save Profile (F01, UC01)
+obj=Rider~r ACTOR
+obj=:ProfilePage~ui
+obj=:AgentController~ctl
+obj=:BuildService~svc
+obj=:RiderProfile~prof
+obj=:AgentOrchestrator~orch
+obj=:GroqClient~llm
+obj=:ToolRegistry~reg
+obj=:RetrieveKnowledgeTool~rkt
+obj=:KnowledgeRetriever~kr
+obj=:ProfileRepository~repo
+r-&gt;&gt;&gt;ui : submitProfile(form); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : recommendStyle(form); on=ctl
+combinedFragment=alt~v ctl kr
+ctl:[form invalid]
+ctl.&gt;ui : validation errors; off=ctl
+..=v; on=ctl
+ctl:[form valid]
+ctl-&gt;&gt;&gt;svc : recommendStyle(profile); on=svc
+svc-&gt;&gt;&gt;prof : topTubeRange(); on=prof
+prof.&gt;svc : Range; off=prof
+svc-&gt;&gt;&gt;orch : run(task: STYLE_RECOMMENDATION); on=orch
+orch-&gt;&gt;&gt;llm : complete(messages, toolSpecs); on=llm
+llm.&gt;orch : LLMResponse(toolCall: retrieve_knowledge); off=llm
+orch-&gt;&gt;&gt;reg : execute(call); on=reg
+reg-&gt;&gt;&gt;rkt : execute(args); on=rkt
+rkt-&gt;&gt;&gt;kr : retrieve("riding styles", 5); on=kr
+kr.&gt;rkt : List&lt;KnowledgeDoc&gt;; off=kr
+rkt.&gt;reg : ToolResult; off=rkt
+reg.&gt;orch : ToolResult; off=reg
+orch-&gt;&gt;&gt;llm : complete(messages + docs, toolSpecs); on=llm
+combinedFragment=alt~ai orch llm
+llm:[valid JSON answer]
+llm.&gt;orch : LLMResponse(ranked styles); off=llm
+orch.&gt;svc : AgentResult(complete=true); off=orch
+..=ai; on=orch; on=llm
+llm:[timeout or malformed after 1 retry]
+llm.&gt;orch : LLMUnavailableException; off=llm
+orch.&gt;svc : AgentResult(complete=false); off=orch
+svc-&gt;svc + : rule-based fallback scoring
+--=ai
+svc.&gt;ctl : StyleRecommendation; off=svc
+ctl.&gt;ui : StyleRecommendation; off=ctl
+--=v
+ui.&gt;r : ranked styles + top tube range; off=ui
+r-&gt;&gt;&gt;ui : saveProfile(); on=ui
+ui-&gt;&gt;&gt;ctl : saveProfile(form); on=ctl
+ctl-&gt;&gt;&gt;svc : saveProfile(profile); on=svc
+svc-&gt;&gt;&gt;repo : save(profile); on=repo
+repo.&gt;svc : RiderProfile; off=repo
+svc.&gt;ctl : RiderProfile; off=svc
+ctl.&gt;ui : RiderProfile; off=ctl
+ui.&gt;r : profile saved; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

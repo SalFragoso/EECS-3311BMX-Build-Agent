@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>3270</w>
+      <h>1920</h>
+    </coordinates>
+    <panel_attributes>title=SD05: Optimize Build for Budget (F07, UC07)
+obj=Rider~r ACTOR
+obj=:BuildPage~ui
+obj=:BuildController~ctl
+obj=:BuildService~svc
+obj=:BudgetOptimizer~opt
+obj=:PartRecommender~rec
+obj=:StreetRankingStrategy~str
+obj=:PartRepository~prepo
+obj=:PriceService~ps
+obj=:CompatibilityChecker~chk
+obj=:AgentOrchestrator~orch
+obj=:GroqClient~llm
+r-&gt;&gt;&gt;ui : requestOptimize(target, locked); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : optimize(buildId, req); on=ctl
+ctl-&gt;&gt;&gt;svc : optimizeBudget(buildId, target, locked); on=svc
+combinedFragment=alt~lk svc llm
+svc:[all slots locked]
+svc.&gt;ctl : error: unlock at least one part; off=svc
+..=lk; on=svc
+svc:[else]
+svc-&gt;&gt;&gt;opt : findSwaps(build, target, locked, profile); on=opt
+opt-&gt;&gt;&gt;rec : setStrategy(new StreetRankingStrategy()); on=rec
+combinedFragment=loop~sl opt chk
+opt:[each unlocked slot]
+off=rec; opt-&gt;&gt;&gt;prepo : findByCategory(slot); on=prepo
+prepo.&gt;opt : List&lt;Part&gt;; off=prepo
+opt-&gt;&gt;&gt;ps : comparePrices(candidate); on=ps
+ps.&gt;opt : List&lt;PriceQuote&gt;; off=ps
+opt-&gt;&gt;&gt;chk : isCompatible(build, candidate); on=chk
+chk.&gt;opt : boolean; off=chk
+opt-&gt;&gt;&gt;rec : rank(candidates, profile); on=rec
+rec-&gt;&gt;&gt;str : score(part, profile); on=str
+str.&gt;rec : double; off=str
+rec.&gt;opt : List&lt;Part&gt;; off=rec
+--=sl
+opt.&gt;svc : List&lt;Swap&gt;; off=opt
+svc-&gt;&gt;&gt;orch : run(task: BUDGET_OPTIMIZE, swaps); on=orch
+orch-&gt;&gt;&gt;llm : complete(messages, toolSpecs); on=llm
+llm.&gt;orch : LLMResponse(chosen swaps + reasons); off=llm
+orch.&gt;svc : AgentResult; off=orch
+svc-&gt;&gt;&gt;chk : check(build with swaps); on=chk
+chk.&gt;svc : CompatibilityReport; off=chk
+combinedFragment=alt~rb svc chk
+svc:[target reached]
+svc.&gt;ctl : OptimizationResult(swaps, newTotal); off=svc
+..=rb; on=svc
+svc:[unreachable]
+svc.&gt;ctl : OptimizationResult(lowest total, blocking parts); off=svc
+--=rb
+--=lk
+ctl.&gt;ui : OptimizationResult; off=ctl
+ui.&gt;r : swaps side by side, accept or reject; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

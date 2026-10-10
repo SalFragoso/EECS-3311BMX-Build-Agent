@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>2690</w>
+      <h>2270</h>
+    </coordinates>
+    <panel_attributes>title=SD04: Search Catalog and Compare Prices (F03, F06, UC03/UC06)
+obj=Rider~r ACTOR
+obj=:PartsPage~ui
+obj=:CatalogController~ctl
+obj=:BuildService~svc
+obj=:PartRepository~prepo
+obj=:PriceService~ps
+obj=:CachingPriceSource~cache
+obj=:RetailerApiAdapter~ad
+obj=:RetailerHttpClient~http
+obj=:LocalDatasetPriceSource~loc
+r-&gt;&gt;&gt;ui : search(query); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : search(query); on=ctl
+ctl-&gt;&gt;&gt;svc : searchParts(query); on=svc
+svc-&gt;&gt;&gt;prepo : search(query); on=prepo
+prepo.&gt;svc : List&lt;Part&gt;; off=prepo
+svc.&gt;ctl : List&lt;Part&gt;; off=svc
+ctl.&gt;ui : List&lt;Part&gt;; off=ctl
+combinedFragment=alt~nr r ui
+ui:[empty list]
+ui.&gt;r : no matches, suggest removing a filter; off=ui
+..=nr; on=ui
+ui:[results]
+ui.&gt;r : paginated results; off=ui
+--=nr
+r-&gt;&gt;&gt;ui : showPrices(partId); on=ui
+ui-&gt;&gt;&gt;ctl : comparePrices(partId); on=ctl
+ctl-&gt;&gt;&gt;svc : comparePrices(partId); on=svc
+svc-&gt;&gt;&gt;prepo : findById(partId); on=prepo
+prepo.&gt;svc : Part; off=prepo
+svc-&gt;&gt;&gt;ps : comparePrices(part); on=ps
+ps-&gt;&gt;&gt;cache : quotes(part); on=cache
+combinedFragment=alt~c cache http
+cache:[cached and fresh]
+cache-&gt;cache + : read cache
+..=c
+cache:[miss or older than ttl]
+cache-&gt;&gt;&gt;ad : quotes(part); on=ad
+ad-&gt;&gt;&gt;http : get(path, params); on=http
+combinedFragment=alt~h ad http
+ad:[200 OK]
+http.&gt;ad : JSON; off=http
+ad-&gt;ad + : map JSON to quotes
+ad.&gt;cache : List&lt;PriceQuote&gt;; off=ad
+cache-&gt;cache + : store entry
+..=h; on=ad; on=http
+ad:[timeout or error]
+http.&gt;ad : error; off=http
+ad.&gt;cache : empty list (source unavailable); off=ad
+--=h
+--=c
+cache.&gt;ps : List&lt;PriceQuote&gt;; off=cache
+ps-&gt;&gt;&gt;loc : quotes(part); on=loc
+loc.&gt;ps : List&lt;PriceQuote&gt;; off=loc
+ps-&gt;ps + : convert to CAD, sort by total
+ps.&gt;svc : List&lt;PriceQuote&gt;; off=ps
+svc.&gt;ctl : List&lt;PriceQuote&gt;; off=svc
+ctl.&gt;ui : List&lt;PriceQuote&gt;; off=ctl
+combinedFragment=alt~q r ui
+ui:[no quotes]
+ui.&gt;r : MSRP shown as estimate; off=ui
+..=q; on=ui
+ui:[quotes]
+ui.&gt;r : price table sorted by total; off=ui
+--=q
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

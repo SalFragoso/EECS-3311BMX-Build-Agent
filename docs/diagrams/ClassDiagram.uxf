@@ -1,0 +1,1975 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>440</x>
+      <y>60</y>
+      <w>260</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;React component&gt;&gt;
+BuildPage
+--
++submitPlanRequest(text: String)
++selectPart(slot, partId)
++requestOptimize(target, locked)
++showBuild(view: BuildView)
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>740</x>
+      <y>60</y>
+      <w>260</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;React component&gt;&gt;
+ProfilePage
+--
++submitProfile(form: ProfileForm)
++saveProfile()
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1040</x>
+      <y>60</y>
+      <w>270</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;React component&gt;&gt;
+ChatPanel
+--
++sendQuestion(text, includeBuild)
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1350</x>
+      <y>60</y>
+      <w>250</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;React component&gt;&gt;
+UpgradePage
+--
++submitUpgrade(bike, budget)
++applyStage(stageNo: int)
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1640</x>
+      <y>60</y>
+      <w>220</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;React component&gt;&gt;
+PartsPage
+--
++search(query: PartQuery)
++showPrices(partId: long)
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1900</x>
+      <y>60</y>
+      <w>260</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;React component&gt;&gt;
+MyBuildsPage
+--
++saveBuild(name: String)
++compare(buildIds: List&lt;Long&gt;)
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>520</x>
+      <y>240</y>
+      <w>330</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;REST controller&gt;&gt;
+BuildController
+--
+-service: BuildService
+--
++planBuild(req: PlanRequest): PlanResult
++selectPart(buildId, slot, partId): BuildView
++checkBuild(buildId): CompatibilityReport
++optimize(buildId, req): OptimizationResult
++getPreview(buildId): PreviewImage
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>960</x>
+      <y>240</y>
+      <w>390</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;REST controller&gt;&gt;
+AgentController
+--
+-service: BuildService
+--
++recommendStyle(form): StyleRecommendation
++saveProfile(form): RiderProfile
++ask(req: QuestionRequest): AgentAnswer
++planUpgrade(req: UpgradeRequest): UpgradePlan
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1450</x>
+      <y>240</y>
+      <w>330</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;REST controller&gt;&gt;
+CatalogController
+--
+-service: BuildService
+--
++search(query: PartQuery): List&lt;Part&gt;
++comparePrices(partId): List&lt;PriceQuote&gt;
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1880</x>
+      <y>240</y>
+      <w>290</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;REST controller&gt;&gt;
+SavedBuildsController
+--
+-service: BuildService
+--
++saveBuild(buildId, name): BuildView
++listBuilds(): List&lt;BuildSummary&gt;
++compare(ids): BuildComparison
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2280</x>
+      <y>240</y>
+      <w>290</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;boundary&gt;&gt;
+BmxCli
+--
+-service: BuildService
+--
++run(args: String[])
+-dispatch(cmd: String, args: String[])
+-print(result: Object)
+bg=#dde8f7</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1345</x>
+      <y>480</y>
+      <w>510</w>
+      <h>430</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;facade&gt;&gt;
+BuildService
+--
+-agent: AgentOrchestrator
+-parts: PartRepository
+-builds: BuildRepository
+-profiles: ProfileRepository
+-checker: CompatibilityChecker
+-prices: PriceService
+-optimizer: BudgetOptimizer
+-upgrades: UpgradeAdvisor
+-renderer: PreviewRenderer
+--
++recommendStyle(profile: RiderProfile): StyleRecommendation
++saveProfile(profile: RiderProfile): RiderProfile
++planBuild(userId, request: String): PlanResult
++searchParts(query: PartQuery): List&lt;Part&gt;
++selectPart(buildId, slot: PartCategory, partId): BikeBuild
++checkCompatibility(buildId): CompatibilityReport
++comparePrices(partId): List&lt;PriceQuote&gt;
++optimizeBudget(buildId, target: Money, locked): OptimizationResult
++renderPreview(buildId): PreviewImage
++askQuestion(userId, question, buildId): AgentAnswer
++saveBuild(buildId, name: String): BikeBuild
++compareBuilds(ids: List&lt;Long&gt;): BuildComparison
++planUpgrade(userId, bike: String, budget: Money): UpgradePlan
+bg=#fff2cc</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>40</x>
+      <y>520</y>
+      <w>340</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>ConversationMemory
+--
+-history: Map&lt;Long, Deque&lt;ChatMessage&gt;&gt;
+-profiles: ProfileRepository
+--
++recent(userId, n: int): List&lt;ChatMessage&gt;
++append(userId, msg: ChatMessage)
++profileOf(userId): RiderProfile
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>40</x>
+      <y>690</y>
+      <w>150</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>ChatMessage
+--
+-role: Role
+-content: String
+-toolCallId: String
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>440</x>
+      <y>560</y>
+      <w>300</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/LLMClient/
+--
++complete(msgs: List&lt;ChatMessage&gt;,
+   tools: List&lt;ToolSpec&gt;): LLMResponse
++modelName(): String
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>860</x>
+      <y>520</y>
+      <w>360</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>AgentOrchestrator
+--
+-llm: LLMClient
+-tools: ToolRegistry
+-memory: ConversationMemory
+-maxSteps: int = 12
+--
++run(task: AgentTask): AgentResult
+-buildMessages(task): List&lt;ChatMessage&gt;
+-handleToolCalls(calls): List&lt;ChatMessage&gt;
+-parseResult(resp: LLMResponse): AgentResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>430</x>
+      <y>740</y>
+      <w>320</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>GroqClient
+--
+-apiKey: String
+-model: String = "llama-3.3-70b-versatile"
+-http: RestClient
+--
++complete(msgs, tools): LLMResponse
+-toRequestJson(msgs, tools): String
+-fromResponseJson(json): LLMResponse
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>480</x>
+      <y>940</y>
+      <w>200</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>LLMResponse
+--
+-text: String
+-toolCalls: List&lt;ToolCall&gt;
+--
++hasToolCalls(): boolean
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>740</x>
+      <y>940</y>
+      <w>180</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>ToolCall
+--
+-id: String
+-name: String
+-arguments: JsonNode
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1000</x>
+      <y>760</y>
+      <w>190</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>AgentTask
+--
+-type: TaskType
+-userId: long
+-userMessage: String
+-profile: RiderProfile
+-build: BikeBuild
+-outputSchema: String
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1000</x>
+      <y>940</y>
+      <w>180</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>AgentResult
+--
+-text: String
+-structured: JsonNode
+-steps: List&lt;String&gt;
+-complete: boolean
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1150</x>
+      <y>1080</y>
+      <w>210</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;enumeration&gt;&gt;
+TaskType
+--
+STYLE_RECOMMENDATION
+BUILD_PLAN
+QUESTION
+BUDGET_OPTIMIZE
+UPGRADE_PLAN
+PART_MATCHING
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>840</x>
+      <y>1120</y>
+      <w>270</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>ToolRegistry
+--
+-tools: Map&lt;String, AgentTool&gt;
+--
++register(tool: AgentTool)
++specs(): List&lt;ToolSpec&gt;
++execute(call: ToolCall): ToolResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>830</x>
+      <y>1290</y>
+      <w>290</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/AgentTool/
+--
++name(): String
++spec(): ToolSpec
++execute(args: JsonNode): ToolResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1160</x>
+      <y>1300</y>
+      <w>150</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>ToolResult
+--
+-success: boolean
+-data: JsonNode
+-error: String
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>20</x>
+      <y>1500</y>
+      <w>220</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>SearchCatalogTool
+--
+-parts: PartRepository
+--
++execute(args): ToolResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>260</x>
+      <y>1500</y>
+      <w>250</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>CheckCompatibilityTool
+--
+-checker: CompatibilityChecker
+-parts: PartRepository
+--
++execute(args): ToolResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>530</x>
+      <y>1500</y>
+      <w>220</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>GetPricesTool
+--
+-prices: PriceService
+--
++execute(args): ToolResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>770</x>
+      <y>1500</y>
+      <w>240</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>RetrieveKnowledgeTool
+--
+-retriever: KnowledgeRetriever
+--
++execute(args): ToolResult
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>700</x>
+      <y>1640</y>
+      <w>400</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>KnowledgeRetriever
+--
+-docs: List&lt;KnowledgeDoc&gt;
+--
++retrieve(query: String, k: int): List&lt;KnowledgeDoc&gt;
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1140</x>
+      <y>1640</y>
+      <w>150</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>KnowledgeDoc
+--
+-id: String
+-title: String
+-text: String
+-sourceUrl: String
+bg=#e2f0d9</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1960</x>
+      <y>480</y>
+      <w>300</w>
+      <h>280</h>
+    </coordinates>
+    <panel_attributes>BikeBuild
+--
+-id: long
+-name: String
+-ownerId: long
+-root: Assembly
+-listeners: List&lt;BuildChangeListener&gt;
+--
++setName(name: String)
++setPart(slot: PartCategory, part: Part)
++removePart(slot: PartCategory)
++getPart(slot: PartCategory): Part
++totalPrice(): Money
++totalWeight(): double
++isComplete(): boolean
++addListener(l: BuildChangeListener)
+-notifyListeners(e: BuildChangeEvent)
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2360</x>
+      <y>480</y>
+      <w>310</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/BuildChangeListener/
+--
++onBuildChanged(e: BuildChangeEvent)
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2740</x>
+      <y>470</y>
+      <w>160</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>BuildChangeEvent
+--
+-build: BikeBuild
+-slot: PartCategory
+-oldPart: Part
+-newPart: Part
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2360</x>
+      <y>640</y>
+      <w>310</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>CompatibilityMonitor
+--
+-checker: CompatibilityChecker
+-latest: CompatibilityReport
+--
++onBuildChanged(e: BuildChangeEvent)
++latestReport(): CompatibilityReport
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2720</x>
+      <y>640</y>
+      <w>310</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>PreviewRenderer
+--
+-layerOrder: List&lt;PartCategory&gt;
+-latest: PreviewImage
+--
++onBuildChanged(e: BuildChangeEvent)
++render(build: BikeBuild): PreviewImage
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1980</x>
+      <y>830</y>
+      <w>260</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>Assembly
+--
+-children: List&lt;BikeComponent&gt;
+--
++add(c: BikeComponent)
++remove(c: BikeComponent)
++getPrice(): Money
++getWeight(): double
++getParts(): List&lt;Part&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2400</x>
+      <y>830</y>
+      <w>190</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>/BikeComponent/
+--
+#name: String
+--
+/+getPrice(): Money/
+/+getWeight(): double/
++getParts(): List&lt;Part&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2380</x>
+      <y>1060</y>
+      <w>230</w>
+      <h>240</h>
+    </coordinates>
+    <panel_attributes>Part
+--
+-id: long
+-brand: String
+-model: String
+-category: PartCategory
+-specs: Map&lt;String, String&gt;
+-msrp: Money
+-weightGrams: double
+-styleTags: Set&lt;RidingStyle&gt;
+-imageLayer: String
+--
++getPrice(): Money
++getWeight(): double
++spec(key: String): String
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2680</x>
+      <y>830</y>
+      <w>210</w>
+      <h>190</h>
+    </coordinates>
+    <panel_attributes>RiderProfile
+--
+-userId: long
+-heightCm: int
+-experience: Level
+-terrains: Set&lt;String&gt;
+-goals: String
+-budget: Money
+-wantsBrakes: boolean
+-style: RidingStyle
+--
++topTubeRange(): Range
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2950</x>
+      <y>830</y>
+      <w>140</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;enumeration&gt;&gt;
+RidingStyle
+--
+STREET
+PARK
+DIRT
+FLATLAND
+RACE
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2680</x>
+      <y>1080</y>
+      <w>250</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;enumeration&gt;&gt;
+PartCategory
+--
+FRAME, FORK, BARS, STEM,
+CRANKS, BOTTOM_BRACKET,
+SPROCKET, CHAIN, PEDALS,
+FRONT_HUB, REAR_HUB, RIMS,
+TIRES, SEAT, BRAKES, ...
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1460</x>
+      <y>980</y>
+      <w>320</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>BudgetOptimizer
+--
+-recommender: PartRecommender
+-checker: CompatibilityChecker
+-prices: PriceService
+-parts: PartRepository
+--
++findSwaps(build, target: Money, locked,
+   profile): List&lt;Swap&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1800</x>
+      <y>1060</y>
+      <w>330</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>UpgradeAdvisor
+--
+-recommender: PartRecommender
+-checker: CompatibilityChecker
+-parts: PartRepository
+--
++candidates(build, profile, budget: Money):
+   List&lt;UpgradeCandidate&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1500</x>
+      <y>1240</y>
+      <w>290</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>PartRecommender
+--
+-strategy: PartRankingStrategy
+--
++setStrategy(s: PartRankingStrategy)
++rank(candidates: List&lt;Part&gt;,
+   profile: RiderProfile): List&lt;Part&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1470</x>
+      <y>1400</y>
+      <w>350</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/PartRankingStrategy/
+--
++score(part: Part, profile: RiderProfile): double
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1330</x>
+      <y>1540</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>StreetRankingStrategy
+--
++score(part, profile): double
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1580</x>
+      <y>1540</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>ParkRankingStrategy
+--
++score(part, profile): double
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1830</x>
+      <y>1540</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>RaceRankingStrategy
+--
++score(part, profile): double
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2080</x>
+      <y>1360</y>
+      <w>360</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>CompatibilityChecker
+--
+-rules: List&lt;CompatibilityRule&gt;
+--
++check(build: BikeBuild): CompatibilityReport
++isCompatible(build, candidate: Part): boolean
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2520</x>
+      <y>1360</y>
+      <w>300</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/CompatibilityRule/
+--
++name(): String
++appliesTo(build: BikeBuild): boolean
++evaluate(build: BikeBuild): RuleResult
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2240</x>
+      <y>1560</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>BottomBracketRule
+--
++evaluate(build): RuleResult
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2490</x>
+      <y>1560</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>HeadTubeRule
+--
++evaluate(build): RuleResult
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2740</x>
+      <y>1560</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>AxleDropoutRule
+--
++evaluate(build): RuleResult
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2990</x>
+      <y>1560</y>
+      <w>230</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>TireClearanceRule
+--
++evaluate(build): RuleResult
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2080</x>
+      <y>1700</y>
+      <w>230</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>CompatibilityReport
+--
+-results: List&lt;RuleResult&gt;
+--
++overall(): Status
++issues(): List&lt;RuleResult&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2360</x>
+      <y>1700</y>
+      <w>150</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>RuleResult
+--
+-rule: String
+-status: Status
+-message: String
+-parts: List&lt;Part&gt;
+bg=#ffffff</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>20</x>
+      <y>1860</y>
+      <w>350</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/PartRepository/
+--
++findById(id: long): Part
++search(q: PartQuery): List&lt;Part&gt;
++findByCategory(c: PartCategory): List&lt;Part&gt;
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>410</x>
+      <y>1860</y>
+      <w>350</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/BuildRepository/
+--
++save(b: BikeBuild): BikeBuild
++findById(id: long): BikeBuild
++findByOwner(userId: long): List&lt;BikeBuild&gt;
++delete(id: long)
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>800</x>
+      <y>1860</y>
+      <w>300</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/ProfileRepository/
+--
++findByUser(userId: long): RiderProfile
++save(p: RiderProfile): RiderProfile
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1160</x>
+      <y>1880</y>
+      <w>350</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>PriceService
+--
+-sources: List&lt;PriceSource&gt;
+-fx: CurrencyConverter
+--
++comparePrices(part: Part): List&lt;PriceQuote&gt;
++cheapestTotal(build: BikeBuild): Money
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1580</x>
+      <y>1880</y>
+      <w>300</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;interface&gt;&gt;
+/PriceSource/
+--
++name(): String
++quotes(part: Part): List&lt;PriceQuote&gt;
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1400</x>
+      <y>2040</y>
+      <w>300</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>RetailerApiAdapter
+--
+-client: RetailerHttpClient
+-retailer: String
+--
++quotes(part: Part): List&lt;PriceQuote&gt;
+-toQuote(json: JsonNode): PriceQuote
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1740</x>
+      <y>2040</y>
+      <w>300</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>LocalDatasetPriceSource
+--
+-csvPath: Path
+--
++quotes(part: Part): List&lt;PriceQuote&gt;
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2080</x>
+      <y>2040</y>
+      <w>300</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;decorator&gt;&gt;
+CachingPriceSource
+--
+-inner: PriceSource
+-cache: Map&lt;Long, CacheEntry&gt;
+-ttl: Duration
+--
++quotes(part: Part): List&lt;PriceQuote&gt;
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1400</x>
+      <y>2220</y>
+      <w>270</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;external&gt;&gt;
+RetailerHttpClient
+--
++get(path: String, params): String
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2460</x>
+      <y>1880</y>
+      <w>160</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>PriceQuote
+--
+-source: String
+-price: Money
+-shipping: Money
+-inStock: boolean
+-url: String
+-fetchedAt: Instant
+bg=#ededed</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>540</x>
+      <y>150</y>
+      <w>142</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;112.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>840</x>
+      <y>120</y>
+      <w>228</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;198.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1125</x>
+      <y>100</y>
+      <w>80</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>50.0;30.0;30.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1242</x>
+      <y>120</y>
+      <w>238</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>208.0;30.0;30.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1618</x>
+      <y>120</y>
+      <w>162</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>132.0;30.0;30.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1995</x>
+      <y>120</y>
+      <w>65</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>35.0;30.0;30.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>655</x>
+      <y>370</y>
+      <w>745</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;50.0;715.5;50.0;715.5;110.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1125</x>
+      <y>360</y>
+      <w>352</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;85.0;322.0;85.0;322.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1544</x>
+      <y>320</y>
+      <w>100</w>
+      <h>190</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>70.5;30.0;70.5;120.0;30.0;120.0;30.0;160.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1697</x>
+      <y>340</y>
+      <w>357</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>327.5;30.0;327.5;105.0;30.0;105.0;30.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1799</x>
+      <y>340</y>
+      <w>655</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>625.5;30.0;625.5;80.0;30.0;80.0;30.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1190</x>
+      <y>536</y>
+      <w>185</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>155.0;30.0;30.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1825</x>
+      <y>500</y>
+      <w>165</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;135.0;33.8</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1590</x>
+      <y>880</y>
+      <w>60</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1800</x>
+      <y>880</y>
+      <w>60</w>
+      <h>210</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;180.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>350</x>
+      <y>505</y>
+      <w>540</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>510.0;30.0;30.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>710</x>
+      <y>598</y>
+      <w>180</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>150.0;30.0;30.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>85</x>
+      <y>620</y>
+      <w>60</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=0..*</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>560</x>
+      <y>640</y>
+      <w>60</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>530</x>
+      <y>860</y>
+      <w>60</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>650</x>
+      <y>959</y>
+      <w>120</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=0..*</panel_attributes>
+    <additional_attributes>30.0;30.5;90.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1065</x>
+      <y>670</y>
+      <w>60</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1150</x>
+      <y>643</y>
+      <w>180</w>
+      <h>371</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>70.0;30.0;150.0;30.0;150.0;341.0;30.0;341.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1160</x>
+      <y>856</y>
+      <w>83</w>
+      <h>254</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;53.0;30.0;53.0;224.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>945</x>
+      <y>670</y>
+      <w>60</w>
+      <h>480</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;450.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>945</x>
+      <y>1200</y>
+      <w>60</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m2=1..*</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1090</x>
+      <y>1310</y>
+      <w>100</w>
+      <h>64</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>30.0;34.5;70.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>100</x>
+      <y>1370</y>
+      <w>905</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>875.0;30.0;875.0;90.0;30.0;90.0;30.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>355</x>
+      <y>1370</y>
+      <w>650</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>620.0;30.0;620.0;90.0;30.0;90.0;30.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>610</x>
+      <y>1370</y>
+      <w>395</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>365.0;30.0;365.0;90.0;30.0;90.0;30.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>860</x>
+      <y>1370</y>
+      <w>145</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>115.0;30.0;115.0;90.0;30.0;90.0;30.0;130.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>860</x>
+      <y>1550</y>
+      <w>60</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1070</x>
+      <y>1649</y>
+      <w>100</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m2=0..*</panel_attributes>
+    <additional_attributes>30.0;30.4;70.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>100</x>
+      <y>1550</y>
+      <w>60</w>
+      <h>340</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;310.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>610</x>
+      <y>1550</y>
+      <w>755</w>
+      <h>360</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;270.0;725.0;270.0;725.0;330.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2230</x>
+      <y>485</y>
+      <w>160</w>
+      <h>62</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=0..*
+r2=listeners</panel_attributes>
+    <additional_attributes>30.0;32.7;130.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2640</x>
+      <y>485</y>
+      <w>130</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;100.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2485</x>
+      <y>520</y>
+      <w>60</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2593</x>
+      <y>520</y>
+      <w>218</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;80.0;188.5;80.0;188.5;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2080</x>
+      <y>730</y>
+      <w>60</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1
+r2=root</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2210</x>
+      <y>837</y>
+      <w>220</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m2=0..*
+r2=children</panel_attributes>
+    <additional_attributes>30.0;30.5;190.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2080</x>
+      <y>910</y>
+      <w>397</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>367.5;30.0;367.5;100.0;30.0;100.0;30.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2512</x>
+      <y>910</y>
+      <w>60</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;150.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2580</x>
+      <y>1100</y>
+      <w>130</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;100.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2860</x>
+      <y>895</y>
+      <w>120</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;90.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1590</x>
+      <y>1100</y>
+      <w>60</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1731</x>
+      <y>1160</y>
+      <w>231</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1</panel_attributes>
+    <additional_attributes>201.0;30.0;201.0;55.0;30.0;55.0;30.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1615</x>
+      <y>1320</y>
+      <w>60</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1
+r2=strategy</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1415</x>
+      <y>1440</y>
+      <w>260</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>230.0;30.0;230.0;65.0;30.0;65.0;30.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1615</x>
+      <y>1440</y>
+      <w>110</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;65.0;80.0;65.0;80.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1615</x>
+      <y>1440</y>
+      <w>360</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;65.0;330.0;65.0;330.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2410</x>
+      <y>1380</y>
+      <w>140</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m2=1..*</panel_attributes>
+    <additional_attributes>30.0;30.0;110.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2325</x>
+      <y>1440</y>
+      <w>375</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>345.0;30.0;345.0;80.0;30.0;80.0;30.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2575</x>
+      <y>1440</y>
+      <w>125</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>95.0;30.0;95.0;80.0;30.0;80.0;30.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2640</x>
+      <y>1440</y>
+      <w>245</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;80.0;215.0;80.0;215.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2640</x>
+      <y>1440</y>
+      <w>495</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;80.0;465.0;80.0;465.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2120</x>
+      <y>1430</y>
+      <w>60</w>
+      <h>300</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;270.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2280</x>
+      <y>1719</y>
+      <w>110</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=0..*</panel_attributes>
+    <additional_attributes>30.0;30.5;80.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1480</x>
+      <y>1894</y>
+      <w>130</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m2=1..*</panel_attributes>
+    <additional_attributes>30.0;30.0;100.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1520</x>
+      <y>1940</y>
+      <w>240</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>210.0;30.0;210.0;60.0;30.0;60.0;30.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1700</x>
+      <y>1940</y>
+      <w>220</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;60.0;190.0;60.0;190.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1700</x>
+      <y>1940</y>
+      <w>560</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;60.0;530.0;60.0;530.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1850</x>
+      <y>1917</y>
+      <w>600</w>
+      <h>191</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1
+r2=inner</panel_attributes>
+    <additional_attributes>530.0;161.5;570.0;161.5;570.0;30.0;30.0;30.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1460</x>
+      <y>2120</y>
+      <w>60</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+m2=1
+r2=adaptee</panel_attributes>
+    <additional_attributes>30.0;30.0;30.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1790</x>
+      <y>1810</y>
+      <w>780</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+&lt;&lt;create&gt;&gt;</panel_attributes>
+    <additional_attributes>30.0;70.0;30.0;30.0;750.0;30.0;750.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates>
+      <x>2700</x>
+      <y>1800</y>
+      <w>460</w>
+      <h>170</h>
+    </coordinates>
+    <panel_attributes>Legend (background colour = layer)
+blue: presentation (React components, REST controllers, CLI)
+yellow: application facade
+green: AI agent
+white: domain model
+grey: data access and integration
+
+Associations that cross layers are shown as typed
+attributes to keep the diagram readable.</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

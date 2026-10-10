@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>2920</w>
+      <h>1790</h>
+    </coordinates>
+    <panel_attributes>title=SD03: Configure Build, Live Compatibility and Preview (F04, F05, F08, UC04/UC05/UC08)
+obj=Rider~r ACTOR
+obj=:BuildPage~ui
+obj=:BuildController~ctl
+obj=:BuildService~svc
+obj=:BuildRepository~brepo
+obj=:PartRepository~prepo
+obj=:BikeBuild~b
+obj=:Assembly~asm
+obj=:CompatibilityMonitor~mon
+obj=:CompatibilityChecker~chk
+obj=:PreviewRenderer~ren
+r-&gt;&gt;&gt;ui : selectPart(FORK, partId); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : selectPart(buildId, FORK, partId); on=ctl
+ctl-&gt;&gt;&gt;svc : selectPart(buildId, FORK, partId); on=svc
+svc-&gt;&gt;&gt;brepo : findById(buildId); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc-&gt;&gt;&gt;b : addListener(monitor); on=b
+svc-&gt;&gt;&gt;b : addListener(renderer)
+off=b; svc-&gt;&gt;&gt;prepo : findById(partId); on=prepo
+prepo.&gt;svc : Part; off=prepo
+svc-&gt;&gt;&gt;b : setPart(FORK, part); on=b
+b-&gt;&gt;&gt;asm : remove(oldFork); on=asm
+b-&gt;&gt;&gt;asm : add(part)
+off=asm; b-&gt;b + : notify listeners
+b-&gt;&gt;&gt;mon : onBuildChanged(event); on=mon
+mon-&gt;&gt;&gt;chk : check(build); on=chk
+combinedFragment=loop~rl chk chk
+chk:[each applicable CompatibilityRule]
+chk-&gt;chk + : evaluate rule
+--=rl
+chk.&gt;mon : CompatibilityReport; off=chk
+off=mon; b-&gt;&gt;&gt;ren : onBuildChanged(event); on=ren
+ren-&gt;ren + : render layers
+off=ren; svc-&gt;&gt;&gt;b : totalPrice()
+b-&gt;&gt;&gt;asm : getPrice(); on=asm
+asm-&gt;asm + : sum child prices
+asm.&gt;b : Money; off=asm
+b.&gt;svc : Money; off=b
+svc-&gt;&gt;&gt;brepo : save(build); on=brepo
+off=brepo; svc-&gt;&gt;&gt;mon : latestReport(); on=mon
+mon.&gt;svc : CompatibilityReport; off=mon
+svc.&gt;ctl : BikeBuild + report + preview; off=svc
+ctl.&gt;ui : BuildView; off=ctl
+combinedFragment=alt~st r ui
+ui:[report has FAIL]
+ui.&gt;r : flag parts, offer compatible replacements; off=ui
+..=st; on=ui
+ui:[all checks pass]
+ui.&gt;r : updated totals and preview; off=ui
+--=st
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>4300</w>
+      <h>2420</h>
+    </coordinates>
+    <panel_attributes>title=SD02: Plan Build with AI Agent (F02, UC02)
+obj=Rider~r ACTOR
+obj=:BuildPage~ui
+obj=:BuildController~ctl
+obj=:BuildService~svc
+obj=:AgentOrchestrator~orch
+obj=:ConversationMemory~mem
+obj=:GroqClient~llm
+obj=Groq API\n&lt;&lt;external&gt;&gt;~api
+obj=:ToolRegistry~reg
+obj=:SearchCatalogTool~st
+obj=:CheckCompatibilityTool~ct
+obj=:GetPricesTool~pt
+obj=:CompatibilityChecker~chk
+obj=:BuildRepository~brepo
+r-&gt;&gt;&gt;ui : submitPlanRequest(text); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : planBuild(req); on=ctl
+ctl-&gt;&gt;&gt;svc : planBuild(userId, request); on=svc
+svc-&gt;&gt;&gt;orch : run(task: BUILD_PLAN); on=orch
+orch-&gt;&gt;&gt;mem : profileOf(userId); on=mem
+mem.&gt;orch : RiderProfile; off=mem
+orch-&gt;&gt;&gt;mem : recent(userId, 10); on=mem
+mem.&gt;orch : List&lt;ChatMessage&gt;; off=mem
+orch-&gt;&gt;&gt;reg : specs(); on=reg
+reg.&gt;orch : List&lt;ToolSpec&gt;; off=reg
+combinedFragment=loop~lp orch pt
+orch:[no final answer and step &lt; maxSteps]
+orch-&gt;&gt;&gt;llm : complete(messages, toolSpecs); on=llm
+llm-&gt;&gt;&gt;api : POST /chat/completions; on=api
+combinedFragment=alt~e llm api
+llm:[HTTP 200]
+api.&gt;llm : JSON; off=api
+llm.&gt;orch : LLMResponse; off=llm
+..=e; on=llm; on=api
+llm:[error or timeout]
+api.&gt;llm : error; off=api
+llm.&gt;orch : LLMUnavailableException; off=llm
+--=e
+combinedFragment=alt~tc orch pt
+orch:[hasToolCalls()]
+orch-&gt;&gt;&gt;reg : execute(call); on=reg
+combinedFragment=alt~which reg pt
+reg:[search_catalog]
+reg-&gt;&gt;&gt;st : execute(args); on=st
+st.&gt;reg : ToolResult(parts); off=st
+..=which
+reg:[check_compatibility]
+reg-&gt;&gt;&gt;ct : execute(args); on=ct
+ct.&gt;reg : ToolResult(report); off=ct
+..=which
+reg:[get_prices]
+reg-&gt;&gt;&gt;pt : execute(args); on=pt
+pt.&gt;reg : ToolResult(quotes); off=pt
+--=which
+reg.&gt;orch : ToolResult; off=reg
+orch-&gt;orch + : append result to messages
+..=tc
+orch:[final answer]
+orch-&gt;orch + : parse final answer
+--=tc
+--=lp
+orch-&gt;&gt;&gt;mem : append(userId, msg); on=mem
+off=mem; orch.&gt;svc : AgentResult; off=orch
+svc-&gt;svc + : parse into build
+svc-&gt;&gt;&gt;chk : check(build); on=chk
+chk.&gt;svc : CompatibilityReport; off=chk
+combinedFragment=alt~res svc brepo
+svc:[complete and validated]
+svc-&gt;&gt;&gt;brepo : save(build); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc.&gt;ctl : PlanResult(build, rationale); off=svc
+..=res; on=svc
+svc:[step limit, LLM down or issues]
+svc.&gt;ctl : PlanResult(partial, issues); off=svc
+--=res
+ctl.&gt;ui : PlanResult; off=ctl
+ui.&gt;r : build loaded in configurator; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

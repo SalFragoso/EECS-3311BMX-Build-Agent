@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>1810</w>
+      <h>1400</h>
+    </coordinates>
+    <panel_attributes>title=SD07: Save and Compare Builds (F10, UC10)
+obj=Rider~r ACTOR
+obj=:MyBuildsPage~ui
+obj=:SavedBuildsController~ctl
+obj=:BuildService~svc
+obj=:BuildRepository~brepo
+obj=:BikeBuild~b
+r-&gt;&gt;&gt;ui : saveBuild(name); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : saveBuild(buildId, name); on=ctl
+ctl-&gt;&gt;&gt;svc : saveBuild(buildId, name); on=svc
+svc-&gt;&gt;&gt;brepo : findByOwner(userId); on=brepo
+brepo.&gt;svc : List&lt;BikeBuild&gt;; off=brepo
+combinedFragment=alt~dn svc b
+svc:[name already used]
+svc.&gt;ctl : DuplicateNameException; off=svc
+ctl.&gt;ui : ask rename or overwrite; off=ctl
+..=dn; on=ctl; on=svc
+svc:[unique name]
+svc-&gt;&gt;&gt;b : setName(name); on=b
+off=b; svc-&gt;&gt;&gt;brepo : save(build); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc.&gt;ctl : BikeBuild; off=svc
+ctl.&gt;ui : BuildView; off=ctl
+--=dn
+ui.&gt;r : saved; off=ui
+r-&gt;&gt;&gt;ui : compare(buildIds); on=ui
+ui-&gt;&gt;&gt;ctl : compare(ids); on=ctl
+ctl-&gt;&gt;&gt;svc : compareBuilds(ids); on=svc
+combinedFragment=loop~eb svc b
+svc:[each id]
+svc-&gt;&gt;&gt;brepo : findById(id); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc-&gt;&gt;&gt;b : getPart(slot) for each slot; on=b
+svc-&gt;&gt;&gt;b : totalPrice(), totalWeight()
+--=eb
+off=b; svc-&gt;svc + : align slots, mark differences
+svc.&gt;ctl : BuildComparison; off=svc
+ctl.&gt;ui : BuildComparison; off=ctl
+ui.&gt;r : side-by-side table; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>2830</w>
+      <h>1780</h>
+    </coordinates>
+    <panel_attributes>title=SD08: Plan Upgrade Path (F11, UC11)
+obj=Rider~r ACTOR
+obj=:UpgradePage~ui
+obj=:AgentController~ctl
+obj=:BuildService~svc
+obj=:AgentOrchestrator~orch
+obj=:GroqClient~llm
+obj=:ToolRegistry~reg
+obj=:SearchCatalogTool~st
+obj=:UpgradeAdvisor~adv
+obj=:PartRecommender~rec
+obj=:CompatibilityChecker~chk
+r-&gt;&gt;&gt;ui : submitUpgrade(bike, budget); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : planUpgrade(req); on=ctl
+ctl-&gt;&gt;&gt;svc : planUpgrade(userId, bike, budget); on=svc
+svc-&gt;&gt;&gt;orch : run(task: PART_MATCHING); on=orch
+orch-&gt;&gt;&gt;llm : complete(description, toolSpecs); on=llm
+llm.&gt;orch : LLMResponse(toolCalls: search_catalog); off=llm
+orch-&gt;&gt;&gt;reg : execute(call); on=reg
+reg-&gt;&gt;&gt;st : execute(args); on=st
+st.&gt;reg : ToolResult(matches); off=st
+reg.&gt;orch : ToolResult; off=reg
+orch.&gt;svc : AgentResult(matched parts); off=orch
+combinedFragment=alt~m svc chk
+svc:[some parts unmatched]
+svc.&gt;ctl : closest matches to confirm; off=svc
+ctl.&gt;ui : ask user to pick; off=ctl
+..=m; on=ctl; on=svc
+svc:[all matched]
+svc-&gt;&gt;&gt;adv : candidates(build, profile, budget); on=adv
+adv-&gt;&gt;&gt;rec : rank(candidates, profile); on=rec
+rec.&gt;adv : List&lt;Part&gt;; off=rec
+adv-&gt;&gt;&gt;chk : isCompatible(build, candidate); on=chk
+chk.&gt;adv : boolean; off=chk
+adv.&gt;svc : List&lt;UpgradeCandidate&gt;; off=adv
+svc-&gt;&gt;&gt;orch : run(task: UPGRADE_PLAN, candidates); on=orch
+orch-&gt;&gt;&gt;llm : complete(messages, toolSpecs); on=llm
+llm.&gt;orch : LLMResponse(stages + reasons); off=llm
+orch.&gt;svc : AgentResult; off=orch
+combinedFragment=loop~s svc chk
+svc:[each stage]
+svc-&gt;&gt;&gt;chk : check(build after stage); on=chk
+chk.&gt;svc : CompatibilityReport; off=chk
+--=s
+svc.&gt;ctl : UpgradePlan; off=svc
+ctl.&gt;ui : UpgradePlan; off=ctl
+ui.&gt;r : stages with cost and Apply Stage; off=ui
+--=m
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>
