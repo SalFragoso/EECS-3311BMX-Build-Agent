@@ -725,10 +725,10 @@ The project brief requires AI tools, so this section shows how AI was used in St
 
 | Tool | Model | Purpose | Where it was used |
 |---|---|---|---|
-| Claude (claude.ai) | Claude Opus 5.5 (as selected in the app) | Design advice, drafting, reviewing against the assignment | Feature specs, use cases, pattern write-ups, agent design, first drafts of the diagrams |
+| Claude (claude.ai) | Claude Opus 5.5 (as selected in the app) | Design advice, drafting, proofreading, reviewing against the assignment | Feature specs, use cases, pattern write-ups, agent design, first drafts of the diagrams, final proofread |
 
 ### What the AI Did
 
-The AI gave design advice (especially on the agent and LLM side) and wrote first drafts of the feature specifications, use cases and design pattern explanations. It also produced first drafts of the diagrams, which I reviewed and rebuilt in UMLet. I made the final design decisions, revised the report and checked it against the assignment.
+The AI gave design advice (especially on the agent and LLM side) and wrote first drafts of the feature specifications, use cases and design pattern explanations. It also produced first drafts of the diagrams, which I reviewed and rebuilt in UMLet. I made the final design decisions, revised the report and checked it against the assignment. I also used Claude to proofread the final report for spelling, grammar and clarity.
 
 The Spring Boot and React setup is based on my experience on PotSpotter, a Hack Canada 2026 project built with Spring Boot and React ([github.com/AndyyBanh/potspotter](https://github.com/AndyyBanh/potspotter)).
