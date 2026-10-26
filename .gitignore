@@ -1,0 +1,8 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+config.local.json
+
+# IntelliJ
+.idea/
