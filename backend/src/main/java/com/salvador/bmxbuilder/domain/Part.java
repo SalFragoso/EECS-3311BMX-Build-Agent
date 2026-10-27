@@ -1,14 +1,12 @@
 package com.salvador.bmxbuilder.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Entity
-public class Part {
+public class Part extends BikeComponent{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -79,12 +77,24 @@ public class Part {
         return imageLayer;
     }
 
+    @Override
     public Money getPrice() {
         return this.msrp;
     }
 
+    @Override
     public double getWeight() {
         return this.weightGrams;
+    }
+
+    @Override
+    public String getName(){
+        return brand + " " + model;
+    }
+    @JsonIgnore //Would infinitely loop by json printing its parts forever.
+    @Override
+    public List<Part> getParts(){
+        return List.of(this);
     }
 
     public String spec(String key) {

@@ -22,4 +22,12 @@ public class Money {
     public String getCurrency() {
         return currency;
     }
+
+    public Money add(Money other){
+        if (!currency.equals(other.currency)){
+            throw new IllegalArgumentException("Can't add " + other.currency + " to " + currency);
+        }
+
+        return new Money(amount.add(other.amount), currency);
+    }
 }
