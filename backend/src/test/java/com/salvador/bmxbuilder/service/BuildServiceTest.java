@@ -1,5 +1,12 @@
 package com.salvador.bmxbuilder.service;
 
+import com.salvador.bmxbuilder.agent.AgentOrchestrator;
+import com.salvador.bmxbuilder.agent.ConversationMemory;
+import com.salvador.bmxbuilder.agent.ScriptedLLMClient;
+import com.salvador.bmxbuilder.agent.tools.AddPartToBuildTool;
+import com.salvador.bmxbuilder.agent.tools.CheckCompatibilityTool;
+import com.salvador.bmxbuilder.agent.tools.SearchCatalogTool;
+import com.salvador.bmxbuilder.agent.tools.ToolRegistry;
 import com.salvador.bmxbuilder.data.BuildRepository;
 import com.salvador.bmxbuilder.data.PartRepository;
 import com.salvador.bmxbuilder.domain.*;
@@ -8,7 +15,9 @@ import com.salvador.bmxbuilder.domain.compatibility.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,16 +30,52 @@ class BuildServiceTest {
     private PartRepository partRepo;
     private BuildRepository buildRepo;
     private BuildService service;
+    private ScriptedLLMClient llm;
 
     @BeforeEach
     void setUp() {
-        // Fake repositories, so no database is needed. The checker is the real one.
+        // Fake repositories and a scripted fake LLM, so no database or API key is needed.
+        // The checker, tools and agent loop are all the real ones.
         partRepo = mock(PartRepository.class);
         buildRepo = mock(BuildRepository.class);
-        service = new BuildService(partRepo, buildRepo, new CompatibilityChecker());
+        CompatibilityChecker checker = new CompatibilityChecker();
+        llm = new ScriptedLLMClient();
+        ToolRegistry tools = new ToolRegistry(List.of(
+                new SearchCatalogTool(partRepo),
+                new AddPartToBuildTool(buildRepo, partRepo, checker),
+                new CheckCompatibilityTool(buildRepo, checker)));
+        AgentOrchestrator agent = new AgentOrchestrator(llm, tools, new ConversationMemory());
+        service = new BuildService(partRepo, buildRepo, checker, agent);
 
         // save() hands back whatever it was given, like the real repository does
         when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    /** Entities normally get their id from the database; tests set it directly. */
+    private static <T> T withId(T entity, long id) {
+        try {
+            Field f = entity.getClass().getDeclaredField("id");
+            f.setAccessible(true);
+            f.set(entity, id);
+            return entity;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Makes the fake build repository behave like a tiny database: save assigns ids, findById looks them up. */
+    private Map<Long, BikeBuild> fakeBuildTable() {
+        Map<Long, BikeBuild> table = new HashMap<>();
+        when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> {
+            BikeBuild b = inv.getArgument(0);
+            if (b.getId() == null) {
+                withId(b, table.size() + 1);
+            }
+            table.put(b.getId(), b);
+            return b;
+        });
+        when(buildRepo.findById(any())).thenAnswer(inv -> Optional.ofNullable(table.get((Long) inv.getArgument(0))));
+        return table;
     }
 
     private Part part(PartCategory category, Map<String, String> specs) {
@@ -112,5 +157,45 @@ class BuildServiceTest {
         List<Part> fits = service.compatibleParts(1L, PartCategory.BOTTOM_BRACKET);
 
         assertEquals(List.of(midBb), fits);
+    }
+
+    // ---------- F02: AI build planner ----------
+
+    @Test
+    void plannerFillsTheBuildThroughItsTools() {
+        fakeBuildTable();
+        Part frame = withId(part(PartCategory.FRAME, Map.of("bbType", "MID")), 1L);
+        when(partRepo.findById(1L)).thenReturn(Optional.of(frame));
+        llm.thenCall("add_part_to_build", Map.of("build_id", 1, "slot", "FRAME", "part_id", 1))
+           .thenCall("check_compatibility", Map.of("build_id", 1))
+           .thenAnswer("I picked a mid-BB frame for street.");
+
+        PlanResult result = service.planBuild("street bike, no brakes", "Street");
+
+        assertTrue(result.finished());
+        assertTrue(result.aiAvailable());
+        assertEquals("I picked a mid-BB frame for street.", result.summary());
+        assertSame(frame, result.build().parts().get(PartCategory.FRAME));
+        assertEquals("Street", result.build().name());
+        assertEquals(2, result.steps().size());
+        assertEquals(250, result.tokensUsed());
+    }
+
+    @Test
+    void plannerFallsBackWhenTheAiIsDown() {
+        fakeBuildTable();
+        llm.down();
+
+        PlanResult result = service.planBuild("street bike", null);
+
+        assertFalse(result.aiAvailable());
+        assertFalse(result.finished());
+        assertTrue(result.summary().contains("unavailable"));
+        assertEquals("AI build", result.build().name());   // the empty build is still there to fill manually
+    }
+
+    @Test
+    void plannerNeedsARequest() {
+        assertThrows(IllegalArgumentException.class, () -> service.planBuild("  ", null));
     }
 }

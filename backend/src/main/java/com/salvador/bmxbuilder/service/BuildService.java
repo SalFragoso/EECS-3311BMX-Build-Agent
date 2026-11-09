@@ -1,5 +1,10 @@
 package com.salvador.bmxbuilder.service;
 
+import com.salvador.bmxbuilder.agent.AgentOrchestrator;
+import com.salvador.bmxbuilder.agent.AgentResult;
+import com.salvador.bmxbuilder.agent.AgentTask;
+import com.salvador.bmxbuilder.agent.Prompts;
+import com.salvador.bmxbuilder.agent.llm.LLMException;
 import com.salvador.bmxbuilder.data.BuildRepository;
 import com.salvador.bmxbuilder.data.PartRepository;
 import com.salvador.bmxbuilder.domain.BikeBuild;
@@ -12,6 +17,7 @@ import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Facade pattern: the single entry point for the REST controllers and the CLI.
@@ -23,11 +29,14 @@ public class BuildService {
     private final PartRepository parts;
     private final BuildRepository builds;
     private final CompatibilityChecker checker;
+    private final AgentOrchestrator agent;
 
-    public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker) {
+    public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker,
+                        AgentOrchestrator agent) {
         this.parts = parts;
         this.builds = builds;
         this.checker = checker;
+        this.agent = agent;
     }
 
     // ---------- F03: catalog search ----------
@@ -104,6 +113,39 @@ public class BuildService {
         return parts.findByCategory(slot).stream()
                 .filter(p -> checker.isCompatible(build, p))
                 .toList();
+    }
+
+    // ---------- F02: AI build planner ----------
+
+    static final int PLANNER_MAX_STEPS = 25;
+    static final Set<String> PLANNER_TOOLS = Set.of("search_catalog", "add_part_to_build", "check_compatibility");
+
+    /**
+     * Creates a build and lets the agent fill it from a plain-language request, e.g.
+     * "street bike under $2000, no brakes". The agent only changes the build through tools, and the
+     * finished build is re-checked here by the deterministic checker, so the AI can't skip the rules.
+     */
+    public PlanResult planBuild(String request, String name) {
+        if (request == null || request.isBlank()) {
+            throw new IllegalArgumentException("Describe the bike you want, e.g. 'street bike under $2000, no brakes'");
+        }
+        String buildName = (name == null || name.isBlank()) ? "AI build" : name.trim();
+        BikeBuild build = builds.save(new BikeBuild(buildName));
+        Long buildId = build.getId();
+
+        AgentTask task = new AgentTask("plan-" + buildId, Prompts.planner(buildId == null ? 0 : buildId),
+                request.trim(), null, PLANNER_TOOLS, PLANNER_MAX_STEPS);
+        try {
+            AgentResult result = agent.run(task);
+            BikeBuild filled = loadBuild(buildId);   // the tools saved their changes; reload to see them
+            return new PlanResult(BuildView.of(filled, checker.check(filled)), result.text(), result.steps(),
+                    result.finished(), true, result.tokensUsed());
+        } catch (LLMException e) {
+            // F02 fallback: the empty build is kept so the rider can fill it manually (F04)
+            String message = "The AI planner is unavailable right now (" + e.getMessage() + "). "
+                    + "Build " + buildId + " was created empty, so you can fill it manually instead.";
+            return new PlanResult(BuildView.of(build, checker.check(build)), message, List.of(), false, false, 0);
+        }
     }
 
     // ---------- helpers ----------

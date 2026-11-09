@@ -11,6 +11,7 @@ import com.salvador.bmxbuilder.domain.compatibility.Status;
 import com.salvador.bmxbuilder.service.BuildService;
 import com.salvador.bmxbuilder.service.BuildView;
 import com.salvador.bmxbuilder.service.NotFoundException;
+import com.salvador.bmxbuilder.service.PlanResult;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
@@ -106,6 +107,24 @@ public class BmxCli implements CommandLineRunner {
                 PartCategory slot = parseSlot(arg(args, 0, "fits <SLOT>"));
                 printParts(service.compatibleParts(requireBuild(), slot), out);
             }
+            case "plan" -> {
+                String request = String.join(" ", args);
+                if (request.isBlank()) {
+                    throw new IllegalArgumentException("Usage: plan <what you want>, e.g. plan street bike under 2000, no brakes");
+                }
+                out.println("Planning... (the agent is searching and checking parts)");
+                PlanResult result = service.planBuild(request, null);
+                result.steps().forEach(s -> out.println("  > " + s));
+                out.println();
+                out.println(result.summary());
+                out.println();
+                printBuild(result.build(), out);
+                if (result.aiAvailable()) {
+                    out.println("  (" + result.tokensUsed() + " tokens used)");
+                }
+                currentBuildId = result.build().id();
+                out.println("Build " + currentBuildId + " is now selected, so you can tweak it with add/remove.");
+            }
             default -> out.println("Unknown command '" + cmd + "'. Type 'help'.");
         }
     }
@@ -196,6 +215,7 @@ public class BmxCli implements CommandLineRunner {
                   remove <SLOT>              empty a slot
                   check                      run the compatibility checker
                   fits <SLOT>                list catalog parts that would fit a slot
+                  plan <request>             AI plans a full build, e.g. plan street bike under 2000, no brakes
                   quit""");
     }
 

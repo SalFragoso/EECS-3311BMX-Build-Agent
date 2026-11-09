@@ -1,5 +1,6 @@
 package com.salvador.bmxbuilder.web;
 
+import com.salvador.bmxbuilder.agent.llm.LLMException;
 import com.salvador.bmxbuilder.service.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> badRequest(IllegalArgumentException e) {
         return ResponseEntity.badRequest().body(new ApiError(e.getMessage()));
+    }
+
+    // The LLM couldn't be reached and the feature had no fallback -> 503
+    @ExceptionHandler(LLMException.class)
+    public ResponseEntity<ApiError> aiUnavailable(LLMException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ApiError(e.getMessage()));
     }
 
     // Bad path/query value, e.g. /api/builds/1/parts/FROG -> 400

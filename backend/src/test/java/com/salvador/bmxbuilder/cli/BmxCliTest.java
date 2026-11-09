@@ -5,7 +5,10 @@ import com.salvador.bmxbuilder.domain.Part;
 import com.salvador.bmxbuilder.domain.PartCategory;
 import com.salvador.bmxbuilder.domain.PartQuery;
 import com.salvador.bmxbuilder.domain.RidingStyle;
+import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
 import com.salvador.bmxbuilder.service.BuildService;
+import com.salvador.bmxbuilder.service.BuildView;
+import com.salvador.bmxbuilder.service.PlanResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,5 +85,27 @@ class BmxCliTest {
 
         assertTrue(output.contains("Unknown command 'wheelie'"));
         assertTrue(output.contains("Bye!"));
+    }
+
+    @Test
+    void planPrintsTheAgentsStepsAndSelectsTheNewBuild() {
+        BuildView view = new BuildView(12L, "AI build", Map.of(), new Money(BigDecimal.ZERO, "CAD"), 0,
+                false, List.of(PartCategory.FRAME), new CompatibilityReport(List.of()));
+        when(service.planBuild(any(), any())).thenReturn(new PlanResult(view, "Here's your street build",
+                List.of("search_catalog {category=FRAME} -> ok"), true, true, 900));
+
+        String output = runWith("plan street bike under 2000\nquit\n");
+
+        assertTrue(output.contains("> search_catalog"));
+        assertTrue(output.contains("Here's your street build"));
+        assertTrue(output.contains("Build 12 is now selected"));
+        verify(service).planBuild("street bike under 2000", null);
+    }
+
+    @Test
+    void planWithoutARequestShowsUsage() {
+        String output = runWith("plan\nquit\n");
+
+        assertTrue(output.contains("Usage: plan"));
     }
 }
