@@ -6,6 +6,7 @@ import com.salvador.bmxbuilder.domain.PartCategory;
 import com.salvador.bmxbuilder.domain.PartQuery;
 import com.salvador.bmxbuilder.domain.RidingStyle;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
+import com.salvador.bmxbuilder.service.AgentAnswer;
 import com.salvador.bmxbuilder.service.BuildService;
 import com.salvador.bmxbuilder.service.BuildView;
 import com.salvador.bmxbuilder.service.PlanResult;
@@ -107,5 +108,17 @@ class BmxCliTest {
         String output = runWith("plan\nquit\n");
 
         assertTrue(output.contains("Usage: plan"));
+    }
+
+    @Test
+    void askPrintsTheAnswerAndSources() {
+        when(service.askQuestion(any(), any(), any())).thenReturn(new AgentAnswer("Mid is most common.",
+                List.of("Bottom bracket types: Mid, Spanish and American"), List.of(), true, 300));
+
+        String output = runWith("ask mid or spanish?\nquit\n");
+
+        assertTrue(output.contains("Mid is most common."));
+        assertTrue(output.contains("Sources: Bottom bracket types"));
+        verify(service).askQuestion("cli", "mid or spanish?", null);
     }
 }

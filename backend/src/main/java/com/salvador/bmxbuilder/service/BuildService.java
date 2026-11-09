@@ -4,6 +4,9 @@ import com.salvador.bmxbuilder.agent.AgentOrchestrator;
 import com.salvador.bmxbuilder.agent.AgentResult;
 import com.salvador.bmxbuilder.agent.AgentTask;
 import com.salvador.bmxbuilder.agent.Prompts;
+import com.salvador.bmxbuilder.agent.knowledge.KnowledgeDoc;
+import com.salvador.bmxbuilder.agent.knowledge.KnowledgeRetriever;
+import com.salvador.bmxbuilder.agent.tools.BuildSummary;
 import com.salvador.bmxbuilder.agent.llm.LLMException;
 import com.salvador.bmxbuilder.data.BuildRepository;
 import com.salvador.bmxbuilder.data.PartRepository;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Facade pattern: the single entry point for the REST controllers and the CLI.
@@ -30,13 +34,15 @@ public class BuildService {
     private final BuildRepository builds;
     private final CompatibilityChecker checker;
     private final AgentOrchestrator agent;
+    private final KnowledgeRetriever knowledge;
 
     public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker,
-                        AgentOrchestrator agent) {
+                        AgentOrchestrator agent, KnowledgeRetriever knowledge) {
         this.parts = parts;
         this.builds = builds;
         this.checker = checker;
         this.agent = agent;
+        this.knowledge = knowledge;
     }
 
     // ---------- F03: catalog search ----------
@@ -141,10 +147,64 @@ public class BuildService {
             return new PlanResult(BuildView.of(filled, checker.check(filled)), result.text(), result.steps(),
                     result.finished(), true, result.tokensUsed());
         } catch (LLMException e) {
-            // F02 fallback: the empty build is kept so the rider can fill it manually (F04)
-            String message = "The AI planner is unavailable right now (" + e.getMessage() + "). "
-                    + "Build " + buildId + " was created empty, so you can fill it manually instead.";
-            return new PlanResult(BuildView.of(build, checker.check(build)), message, List.of(), false, false, 0);
+            // F02 fallback: keep whatever the agent added before the AI failed (e.g. a rate limit
+            // partway through), so the rider can finish the build manually (F04)
+            BikeBuild current = loadBuild(buildId);
+            String message = current.getSlots().isEmpty()
+                    ? "The AI planner is unavailable right now (" + e.getMessage() + "). Build " + buildId
+                      + " was created empty, so you can fill it manually instead."
+                    : "The AI planner stopped partway (" + e.getMessage() + "). Build " + buildId
+                      + " has the parts it picked so far, so you can finish it manually.";
+            return new PlanResult(BuildView.of(current, checker.check(current)), message, List.of(), false, false, 0);
+        }
+    }
+
+    // ---------- F09: BMX Q&A assistant ----------
+
+    static final int QA_MAX_STEPS = 6;
+    static final Set<String> QA_TOOLS = Set.of("search_knowledge", "search_catalog");
+
+    /**
+     * Answers a BMX question. Matching knowledge base articles are found first and sent with the
+     * question; the agent can search for more. Follow-ups in the same conversation see earlier turns.
+     *
+     * @param conversationId groups follow-up questions (e.g. "cli" or one per browser tab)
+     * @param buildId        optional: include this build so the answer can refer to it
+     */
+    public AgentAnswer askQuestion(String conversationId, String question, Long buildId) {
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("Ask a BMX question, e.g. 'mid or Spanish bottom bracket?'");
+        }
+        String convo = (conversationId == null || conversationId.isBlank()) ? "default" : conversationId;
+        List<KnowledgeDoc> docs = knowledge.retrieve(question, 3);
+        List<String> sources = docs.stream().map(KnowledgeDoc::title).toList();
+
+        StringBuilder context = new StringBuilder();
+        if (docs.isEmpty()) {
+            context.append("Knowledge base: no articles matched this question.");
+        } else {
+            context.append("Knowledge base passages:");
+            for (KnowledgeDoc d : docs) {
+                context.append("\n[").append(d.title()).append("]\n").append(d.text());
+            }
+        }
+        if (buildId != null) {
+            BikeBuild build = loadBuild(buildId);
+            context.append("\n\nThe rider's current build:\n").append(BuildSummary.build(build, checker.check(build)));
+        }
+
+        AgentTask task = new AgentTask(convo, Prompts.questionAnswering(), question.trim(), context.toString(),
+                QA_TOOLS, QA_MAX_STEPS);
+        try {
+            AgentResult result = agent.run(task);
+            return new AgentAnswer(result.text(), sources, result.steps(), true, result.tokensUsed());
+        } catch (LLMException e) {
+            // F09 fallback: show the matching articles directly
+            String answer = docs.isEmpty()
+                    ? "The AI assistant is unavailable right now (" + e.getMessage() + ") and no articles matched."
+                    : "The AI assistant is unavailable right now, but these articles match your question:\n\n"
+                      + docs.stream().map(d -> d.title() + ": " + d.text()).collect(Collectors.joining("\n\n"));
+            return new AgentAnswer(answer, sources, List.of(), false, 0);
         }
     }
 

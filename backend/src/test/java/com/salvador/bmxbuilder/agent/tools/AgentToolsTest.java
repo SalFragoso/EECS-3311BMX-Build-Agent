@@ -1,5 +1,6 @@
 package com.salvador.bmxbuilder.agent.tools;
 
+import com.salvador.bmxbuilder.agent.knowledge.KnowledgeRetriever;
 import com.salvador.bmxbuilder.agent.llm.ToolCall;
 import com.salvador.bmxbuilder.data.BuildRepository;
 import com.salvador.bmxbuilder.data.PartRepository;
@@ -154,5 +155,13 @@ class AgentToolsTest {
 
         assertTrue(r.content().contains("Missing required slots"));
         assertTrue(r.content().contains("Parts: none yet"));
+    }
+
+    @Test
+    void knowledgeToolReturnsMatchingArticles() {
+        RetrieveKnowledgeTool tool = new RetrieveKnowledgeTool(new KnowledgeRetriever());
+
+        assertTrue(tool.execute(Map.of("query", "spanish bottom bracket")).content().contains("[Bottom bracket types"));
+        assertTrue(tool.execute(Map.of("query", "pizza")).content().startsWith("No knowledge base articles"));
     }
 }

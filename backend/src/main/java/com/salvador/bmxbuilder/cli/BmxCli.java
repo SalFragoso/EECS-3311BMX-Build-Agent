@@ -8,6 +8,7 @@ import com.salvador.bmxbuilder.domain.RidingStyle;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
 import com.salvador.bmxbuilder.domain.compatibility.RuleResult;
 import com.salvador.bmxbuilder.domain.compatibility.Status;
+import com.salvador.bmxbuilder.service.AgentAnswer;
 import com.salvador.bmxbuilder.service.BuildService;
 import com.salvador.bmxbuilder.service.BuildView;
 import com.salvador.bmxbuilder.service.NotFoundException;
@@ -125,6 +126,19 @@ public class BmxCli implements CommandLineRunner {
                 currentBuildId = result.build().id();
                 out.println("Build " + currentBuildId + " is now selected, so you can tweak it with add/remove.");
             }
+            case "ask" -> {
+                String question = String.join(" ", args);
+                if (question.isBlank()) {
+                    throw new IllegalArgumentException("Usage: ask <question>, e.g. ask mid or spanish bottom bracket?");
+                }
+                // the selected build (if any) is included so answers can refer to it
+                AgentAnswer answer = service.askQuestion("cli", question, currentBuildId);
+                answer.steps().forEach(s -> out.println("  > " + s));
+                out.println(answer.answer());
+                if (!answer.sources().isEmpty()) {
+                    out.println("  Sources: " + String.join("; ", answer.sources()));
+                }
+            }
             default -> out.println("Unknown command '" + cmd + "'. Type 'help'.");
         }
     }
@@ -216,6 +230,7 @@ public class BmxCli implements CommandLineRunner {
                   check                      run the compatibility checker
                   fits <SLOT>                list catalog parts that would fit a slot
                   plan <request>             AI plans a full build, e.g. plan street bike under 2000, no brakes
+                  ask <question>             ask the BMX assistant, e.g. ask what's a freecoaster?
                   quit""");
     }
 

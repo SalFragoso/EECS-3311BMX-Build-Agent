@@ -3,8 +3,15 @@ package com.salvador.bmxbuilder.service;
 import com.salvador.bmxbuilder.agent.AgentOrchestrator;
 import com.salvador.bmxbuilder.agent.ConversationMemory;
 import com.salvador.bmxbuilder.agent.ScriptedLLMClient;
+import com.salvador.bmxbuilder.agent.knowledge.KnowledgeRetriever;
+import com.salvador.bmxbuilder.agent.llm.ChatMessage;
+import com.salvador.bmxbuilder.agent.llm.LLMClient;
+import com.salvador.bmxbuilder.agent.llm.LLMException;
+import com.salvador.bmxbuilder.agent.llm.LLMResponse;
+import com.salvador.bmxbuilder.agent.llm.ToolSpec;
 import com.salvador.bmxbuilder.agent.tools.AddPartToBuildTool;
 import com.salvador.bmxbuilder.agent.tools.CheckCompatibilityTool;
+import com.salvador.bmxbuilder.agent.tools.RetrieveKnowledgeTool;
 import com.salvador.bmxbuilder.agent.tools.SearchCatalogTool;
 import com.salvador.bmxbuilder.agent.tools.ToolRegistry;
 import com.salvador.bmxbuilder.data.BuildRepository;
@@ -40,12 +47,14 @@ class BuildServiceTest {
         buildRepo = mock(BuildRepository.class);
         CompatibilityChecker checker = new CompatibilityChecker();
         llm = new ScriptedLLMClient();
+        KnowledgeRetriever knowledge = new KnowledgeRetriever();
         ToolRegistry tools = new ToolRegistry(List.of(
                 new SearchCatalogTool(partRepo),
                 new AddPartToBuildTool(buildRepo, partRepo, checker),
-                new CheckCompatibilityTool(buildRepo, checker)));
+                new CheckCompatibilityTool(buildRepo, checker),
+                new RetrieveKnowledgeTool(knowledge)));
         AgentOrchestrator agent = new AgentOrchestrator(llm, tools, new ConversationMemory());
-        service = new BuildService(partRepo, buildRepo, checker, agent);
+        service = new BuildService(partRepo, buildRepo, checker, agent, knowledge);
 
         // save() hands back whatever it was given, like the real repository does
         when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -195,7 +204,113 @@ class BuildServiceTest {
     }
 
     @Test
+    void plannerKeepsPartialProgressIfTheAiFailsMidway() {
+        fakeBuildTable();
+        when(partRepo.findById(1L)).thenReturn(Optional.of(withId(part(PartCategory.FRAME, Map.of()), 1L)));
+        FailingAfterOneCall llm2 = new FailingAfterOneCall(
+                llm.thenCall("add_part_to_build", Map.of("build_id", 1, "slot", "FRAME", "part_id", 1)));
+        BuildService flaky = new BuildService(partRepo, buildRepo, new CompatibilityChecker(),
+                new AgentOrchestrator(llm2, new ToolRegistry(List.of(new AddPartToBuildTool(buildRepo, partRepo,
+                        new CompatibilityChecker()))), new ConversationMemory()), new KnowledgeRetriever());
+
+        PlanResult result = flaky.planBuild("street bike", null);
+
+        assertFalse(result.aiAvailable());
+        assertTrue(result.summary().contains("stopped partway"));
+        assertTrue(result.build().parts().containsKey(PartCategory.FRAME));
+    }
+
+    /** Answers once from the scripted LLM, then fails like a rate limit would. */
+    private static class FailingAfterOneCall implements LLMClient {
+        private final ScriptedLLMClient first;
+        private int calls;
+
+        FailingAfterOneCall(ScriptedLLMClient first) {
+            this.first = first;
+        }
+
+        @Override
+        public LLMResponse complete(List<ChatMessage> messages, List<ToolSpec> tools) {
+            if (calls++ > 0) {
+                throw new LLMException("Groq rate limit reached.");
+            }
+            return first.complete(messages, tools);
+        }
+
+        @Override
+        public String modelName() {
+            return "flaky";
+        }
+    }
+
+    @Test
     void plannerNeedsARequest() {
         assertThrows(IllegalArgumentException.class, () -> service.planBuild("  ", null));
+    }
+
+    // ---------- F09: BMX Q&A assistant ----------
+
+    @Test
+    void questionIsSentWithMatchingArticles() {
+        llm.thenAnswer("Mid is the most common.");
+
+        AgentAnswer answer = service.askQuestion("t1", "mid or spanish bottom bracket?", null);
+
+        assertTrue(answer.aiAvailable());
+        assertEquals("Mid is the most common.", answer.answer());
+        assertEquals("Bottom bracket types: Mid, Spanish and American", answer.sources().get(0));
+        String sentToModel = llm.sentMessages.get(0).get(1).content();
+        assertTrue(sentToModel.contains("Knowledge base passages"));
+        assertTrue(sentToModel.contains("Spanish BBs press bearings"));
+    }
+
+    @Test
+    void agentCanSearchTheKnowledgeBaseItself() {
+        llm.thenCall("search_knowledge", Map.of("query", "freecoaster")).thenAnswer("It rolls backwards freely.");
+
+        AgentAnswer answer = service.askQuestion("t2", "what hub for fakies?", null);
+
+        assertEquals(1, answer.steps().size());
+        assertTrue(answer.steps().get(0).endsWith("-> ok"));
+    }
+
+    @Test
+    void currentBuildIsIncludedWhenGiven() {
+        Map<Long, BikeBuild> table = fakeBuildTable();
+        BikeBuild build = buildRepo.save(new BikeBuild("Mine"));
+        build.setPart(PartCategory.FRAME, withId(part(PartCategory.FRAME, Map.of("bbType", "MID")), 1L));
+        llm.thenAnswer("Your frame takes a Mid BB.");
+
+        service.askQuestion("t3", "which bottom bracket fits my frame?", build.getId());
+
+        assertTrue(llm.sentMessages.get(0).get(1).content().contains("The rider's current build"));
+        assertEquals(1, table.size());
+    }
+
+    @Test
+    void followUpQuestionsRememberTheConversation() {
+        llm.thenAnswer("A freecoaster lets you roll backwards.").thenAnswer("Yes, for street it's popular.");
+
+        service.askQuestion("t4", "what's a freecoaster?", null);
+        service.askQuestion("t4", "is it good for street?", null);
+
+        // system, earlier question, earlier answer, new question
+        assertEquals(4, llm.sentMessages.get(1).size());
+    }
+
+    @Test
+    void whenTheAiIsDownMatchingArticlesAreShown() {
+        llm.down();
+
+        AgentAnswer answer = service.askQuestion("t5", "what's a freecoaster?", null);
+
+        assertFalse(answer.aiAvailable());
+        assertTrue(answer.answer().contains("unavailable"));
+        assertTrue(answer.answer().contains("Freecoaster vs cassette"));
+    }
+
+    @Test
+    void blankQuestionIsRejected() {
+        assertThrows(IllegalArgumentException.class, () -> service.askQuestion("t6", " ", null));
     }
 }

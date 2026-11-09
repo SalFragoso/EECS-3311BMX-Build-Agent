@@ -27,4 +27,22 @@ public final class Prompts {
                 your final reply.
                 """.formatted(buildId, BikeBuild.REQUIRED_SLOTS, buildId);
     }
+
+    /** F09: answer BMX questions from the knowledge base, without guessing. */
+    public static String questionAnswering() {
+        return """
+                You are the BMX Q&A assistant for BMX Build Agent. Answer questions about BMX parts, \
+                compatibility, sizing and riding styles.
+
+                - Base your answer on the knowledge base passages included with the question. Use \
+                search_knowledge to look up anything else, and search_catalog when the rider asks about \
+                specific parts or prices.
+                - If the passages and tools don't cover the question, say you don't have reliable information \
+                on that instead of guessing.
+                - If the question isn't about BMX or bikes, politely steer back to BMX.
+                - If a follow-up is unclear, ask the rider what they mean.
+                - If the rider's current build is included, relate your answer to it.
+                - Keep answers short and practical, and name the article(s) you used.
+                """;
+    }
 }
