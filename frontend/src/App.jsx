@@ -6,11 +6,13 @@ import PlannerPage from "./pages/PlannerPage.jsx";
 import AskPage from "./pages/AskPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import BuildsPage from "./pages/BuildsPage.jsx";
+import UpgradePage from "./pages/UpgradePage.jsx";
 
 const TABS = [
   ["build", "Build"],
   ["catalog", "Catalog"],
   ["planner", "AI Planner"],
+  ["upgrade", "Upgrade"],
   ["ask", "Ask"],
   ["profile", "My Profile"],
   ["builds", "My Builds"],
@@ -58,6 +60,7 @@ export default function App() {
         {tab === "build" && <BuildPage buildId={buildId} setBuildId={setBuildId} />}
         {tab === "catalog" && <CatalogPage buildId={buildId} />}
         {tab === "planner" && <PlannerPage openBuild={openBuild} />}
+        {tab === "upgrade" && <UpgradePage buildId={buildId} openBuild={openBuild} />}
         {tab === "ask" && <AskPage buildId={buildId} />}
         {tab === "profile" && <ProfilePage />}
         {tab === "builds" && <BuildsPage openBuild={openBuild} buildId={buildId} setBuildId={setBuildId} />}

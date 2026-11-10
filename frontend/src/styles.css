@@ -156,3 +156,8 @@ tr.total-row td { font-weight: 700; }
 .build-list li { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; flex-wrap: wrap; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.stages { display: grid; gap: 12px; margin: 10px 0; }
+.stage { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; }
+.stage h4 { margin: 0; }
+.stage-options { padding-left: 18px; display: grid; gap: 6px; }

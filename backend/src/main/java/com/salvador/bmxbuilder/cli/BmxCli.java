@@ -14,6 +14,7 @@ import com.salvador.bmxbuilder.pricing.PriceQuote;
 import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
 import com.salvador.bmxbuilder.recommend.RiderProfile;
 import com.salvador.bmxbuilder.recommend.StyleRecommendation;
+import com.salvador.bmxbuilder.recommend.UpgradeAdvisor;
 import com.salvador.bmxbuilder.service.AgentAnswer;
 import com.salvador.bmxbuilder.service.BuildComparison;
 import com.salvador.bmxbuilder.service.OptimizationResult;
@@ -243,6 +244,37 @@ public class BmxCli implements CommandLineRunner {
                 out.println(totals);
                 out.println("  (* = different between builds)");
             }
+            case "upgrade" -> {
+                Map<String, String> o = options(args);
+                BigDecimal budget = parseMoney(arg(args, 0, "upgrade <budget> [--style STREET] [--describe my bike...] [--apply-stage 1]"));
+                RidingStyle style = o.containsKey("style") ? parseEnum(RidingStyle.class, o.get("style")) : lastStyle;
+                UpgradeAdvisor.Plan plan = o.containsKey("describe")
+                        ? service.planUpgrade(null, o.get("describe"), budget, style)
+                        : service.planUpgrade(requireBuild(), null, budget, style);
+                plan.steps().forEach(st -> out.println("  > " + st));
+                plan.notes().forEach(n -> out.println("  Note: " + n));
+                for (UpgradeAdvisor.Stage stage : plan.stages()) {
+                    out.printf("  Stage %d (%s, compatibility %s): %s%n", stage.number(), money(stage.cost()),
+                            stage.compatibility(), stage.reason());
+                    for (UpgradeAdvisor.Option op : stage.options()) {
+                        StringBuilder names = new StringBuilder();
+                        op.parts().forEach(p -> names.append("[").append(p.getId()).append("] ").append(p.getName()).append("  "));
+                        out.printf("    %-28s %s (%s)%n", op.slots().toString(), names.toString().trim(), op.reason());
+                    }
+                }
+                out.println("  " + plan.summary());
+                if (plan.buildId() != null) {
+                    currentBuildId = plan.buildId();
+                }
+                if (o.containsKey("apply-stage") && plan.buildId() != null) {
+                    int n = (int) parseId(o.get("apply-stage")).longValue();
+                    UpgradeAdvisor.Stage stage = plan.stages().stream().filter(st -> st.number() == n).findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("There's no stage " + n));
+                    Map<PartCategory, Long> picks = new EnumMap<>(PartCategory.class);
+                    stage.options().forEach(op -> op.parts().forEach(p -> picks.put(p.getCategory(), p.getId())));
+                    printBuild(service.applySwaps(plan.buildId(), picks), out);
+                }
+            }
             case "rename" -> {
                 String name = String.join(" ", args);
                 printBuild(service.renameBuild(requireBuild(), name), out);
@@ -388,6 +420,8 @@ public class BmxCli implements CommandLineRunner {
                   buildprices                cheapest store for each part in the selected build
                   optimize <target> [--lock FRAME,FORK] [--style STREET] [--apply]
                                              cheaper swaps to hit a budget, explained by the AI
+                  upgrade <budget> [--style STREET] [--describe my bike...] [--apply-stage 1]
+                                             AI plans staged upgrades for the selected build or a described bike
                   compare <id> <id> [<id>]   compare two or three builds side by side
                   rename <name>              rename the selected build
                   copy                       duplicate the selected build

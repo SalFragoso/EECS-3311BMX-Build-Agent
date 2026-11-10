@@ -11,6 +11,7 @@ import com.salvador.bmxbuilder.agent.llm.LLMException;
 import com.salvador.bmxbuilder.data.BuildRepository;
 import com.salvador.bmxbuilder.data.PartRepository;
 import com.salvador.bmxbuilder.domain.BikeBuild;
+import com.salvador.bmxbuilder.domain.Money;
 import com.salvador.bmxbuilder.domain.Part;
 import com.salvador.bmxbuilder.domain.PartCategory;
 import com.salvador.bmxbuilder.domain.PartQuery;
@@ -25,6 +26,7 @@ import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
 import com.salvador.bmxbuilder.recommend.RiderProfile;
 import com.salvador.bmxbuilder.recommend.StyleRecommendation;
 import com.salvador.bmxbuilder.recommend.StyleRecommender;
+import com.salvador.bmxbuilder.recommend.UpgradeAdvisor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -51,10 +53,11 @@ public class BuildService {
     private final PriceService prices;
     private final BudgetOptimizer optimizer;
     private final StyleRecommender styles;
+    private final UpgradeAdvisor upgrades;
 
     public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker,
                         AgentOrchestrator agent, KnowledgeRetriever knowledge, PriceService prices,
-                        BudgetOptimizer optimizer, StyleRecommender styles) {
+                        BudgetOptimizer optimizer, StyleRecommender styles, UpgradeAdvisor upgrades) {
         this.parts = parts;
         this.builds = builds;
         this.checker = checker;
@@ -63,6 +66,7 @@ public class BuildService {
         this.prices = prices;
         this.optimizer = optimizer;
         this.styles = styles;
+        this.upgrades = upgrades;
     }
 
     // ---------- F03: catalog search ----------
@@ -145,6 +149,35 @@ public class BuildService {
 
     public StyleRecommendation recommendStyle(RiderProfile profile) {
         return styles.recommend(profile);
+    }
+
+    // ---------- F11: upgrade path advisor ----------
+
+    /**
+     * Plans upgrades for the rider's current bike: either a saved build (buildId) or a plain-text
+     * description, which the agent matches to catalog parts and saves as a build so stages can be applied.
+     */
+    public UpgradeAdvisor.Plan planUpgrade(Long buildId, String description, BigDecimal budget, RidingStyle style) {
+        if (budget == null || budget.signum() <= 0) {
+            throw new IllegalArgumentException("Enter an upgrade budget above $0");
+        }
+        List<Part> catalog = parts.findAll();
+        if (buildId != null) {
+            return upgrades.advise(loadBuild(buildId), budget, style, catalog, List.of(), 0);
+        }
+        if (description == null || description.isBlank()) {
+            throw new IllegalArgumentException("Pick a saved build or describe your current bike");
+        }
+        UpgradeAdvisor.Match match = upgrades.matchDescription(description, catalog);
+        if (!match.ok()) {
+            return new UpgradeAdvisor.Plan(null, null, style, new Money(budget, "CAD"), List.of(),
+                    new Money(BigDecimal.ZERO, "CAD"), match.problem(), false, List.of(match.problem()),
+                    match.steps(), match.tokensUsed());
+        }
+        BikeBuild bike = new BikeBuild("My current bike");
+        match.matched().forEach(bike::setPart);
+        BikeBuild saved = builds.save(bike);
+        return upgrades.advise(saved, budget, style, catalog, match.steps(), match.tokensUsed());
     }
 
     // ---------- F10: saved builds and comparison ----------

@@ -67,4 +67,31 @@ public final class Prompts {
                 {"ranked": [{"style": "STREET", "score": 85, "reason": "..."}, ...]}
                 """;
     }
+
+    /** F11 step 1: match the rider's description of their bike to catalog parts. */
+    public static String bikeMatcher() {
+        return """
+                You match a rider's description of their current BMX to parts in the catalog. Use \
+                search_catalog to look parts up. Only match a part when the description clearly names it \
+                (brand and/or model) or the catalog part is an obvious exact match. Parts described as stock, \
+                basic, plastic, one-piece, or not described at all are "stock".
+
+                Reply with ONLY this JSON and nothing else:
+                {"matched": [{"slot": "FRAME", "partId": 2}], "stock": ["PEDALS", "CRANKS"]}
+                """;
+    }
+
+    /** F11 step 3: group already-checked upgrade options into stages. */
+    public static String upgradeStager() {
+        return """
+                You plan the order of BMX upgrades. The options below were already scored for the rider's \
+                style and checked for compatibility by the app; each option is bought as a whole. Group them \
+                into 1 to 3 stages in the order the rider should buy them: the biggest improvement for the \
+                money first, and parts that depend on each other in the same stage. Use each option at most \
+                once and only use the option numbers given. The total must stay within the budget.
+
+                Reply with ONLY this JSON and nothing else:
+                {"stages": [{"options": [1, 3], "reason": "why this stage comes first"}], "summary": "one or two sentences"}
+                """;
+    }
 }

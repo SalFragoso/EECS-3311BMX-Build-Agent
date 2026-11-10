@@ -22,7 +22,7 @@ EECS3311 Software Design course project, Fall 2026.
 | F08 | Live 2D build preview | Deterministic | Build | (GUI only) |
 | F09 | BMX Q&A assistant | AI agent (retrieval) | Ask | `ask` |
 | F10 | Saved builds and side-by-side comparison | Deterministic | My Builds | `builds`, `compare`, `rename`, `copy`, `delete` |
-| F11 | Upgrade path advisor | Not implemented in Stage 2 | | |
+| F11 | Upgrade path advisor | Hybrid | Upgrade | `upgrade` |
 
 ## Stack
 
@@ -94,6 +94,9 @@ bmx> copy
 bmx> optimize 1500 --lock FRAME
 bmx> optimize 1500 --lock FRAME --apply
 bmx> compare 1 2
+bmx> upgrade 400 --style STREET
+bmx> upgrade 400 --style STREET --apply-stage 1
+bmx> upgrade 300 --describe Fit Begin frame, stock complete with plastic pedals
 bmx> search odyssey --category FORK --max 200
 bmx> prices 4
 bmx> quit
@@ -134,6 +137,7 @@ npm run build    # rebuilds the GUI into backend/src/main/resources/static
 | POST | `/api/agent/plan?request=&name=` | F02 |
 | POST | `/api/agent/ask?question=&conversationId=&buildId=` | F09 |
 | POST | `/api/agent/recommend-style?heightCm=&experience=&spots=&goals=&budget=&wantsBrakes=` | F01 |
+| POST | `/api/agent/upgrade?buildId=&description=&budget=&style=` | F11 |
 
 Errors come back as JSON, e.g. `{"error": "Build 9 not found"}`, with status 400, 404 or 503.
 
@@ -150,7 +154,7 @@ Errors come back as JSON, e.g. `{"error": "Build 9 not found"}`, with status 400
 | Facade | One entry point for the GUI controllers and the CLI | `BuildService` |
 | Adapter | Groq's API adapted to the agent's LLM interface | `LLMClient` (target), `GroqClient` (adapter) |
 | Command | Each agent tool is a command the LLM can invoke | `AgentTool`, `ToolRegistry` (invoker), the tools |
-| Strategy | Part ranking per riding style, used by the budget optimizer | `PartRankingStrategy`, `StreetRankingStrategy` and others, `PartRecommender` |
+| Strategy | Part ranking per riding style, used by the budget optimizer and upgrade advisor | `PartRankingStrategy`, `StreetRankingStrategy` and others, `PartRecommender` |
 | Decorator | Caching added around any price source | `PriceSource`, `CachingPriceSource` |
 
 ## Sample data
@@ -167,7 +171,7 @@ backend/
     service/        BuildService (facade) and result types
     agent/          orchestrator, memory, prompts, tools, LLM client, knowledge base
     pricing/        price sources, caching decorator, PriceService
-    recommend/      ranking strategies, budget optimizer, style recommender
+    recommend/      ranking strategies, budget optimizer, style recommender, upgrade advisor
     web/            REST controllers and error handling
     cli/            BmxCli
   src/main/resources/static/   built GUI

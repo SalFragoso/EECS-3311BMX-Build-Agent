@@ -21,6 +21,7 @@ import com.salvador.bmxbuilder.domain.compatibility.CompatibilityChecker;
 import com.salvador.bmxbuilder.pricing.PriceService;
 import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
 import com.salvador.bmxbuilder.recommend.StyleRecommender;
+import com.salvador.bmxbuilder.recommend.UpgradeAdvisor;
 import com.salvador.bmxbuilder.domain.compatibility.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,8 @@ class BuildServiceTest {
                 new RetrieveKnowledgeTool(knowledge)));
         AgentOrchestrator agent = new AgentOrchestrator(llm, tools, new ConversationMemory());
         service = new BuildService(partRepo, buildRepo, checker, agent, knowledge, new PriceService(List.of()),
-                new BudgetOptimizer(checker), new StyleRecommender(agent, knowledge));
+                new BudgetOptimizer(checker), new StyleRecommender(agent, knowledge),
+                new UpgradeAdvisor(agent, checker));
 
         // save() hands back whatever it was given, like the real repository does
         when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -217,7 +219,7 @@ class BuildServiceTest {
         BuildService flaky = new BuildService(partRepo, buildRepo, new CompatibilityChecker(),
                 new AgentOrchestrator(llm2, new ToolRegistry(List.of(new AddPartToBuildTool(buildRepo, partRepo,
                         new CompatibilityChecker()))), new ConversationMemory()), new KnowledgeRetriever(),
-                new PriceService(List.of()), new BudgetOptimizer(new CompatibilityChecker()), null);
+                new PriceService(List.of()), new BudgetOptimizer(new CompatibilityChecker()), null, null);
 
         PlanResult result = flaky.planBuild("street bike", null);
 
@@ -429,5 +431,28 @@ class BuildServiceTest {
         BuildView view = service.applySwaps(build.getId(), Map.of(PartCategory.BARS, 2L));
 
         assertSame(cheapBars, view.parts().get(PartCategory.BARS));
+    }
+
+    // ---------- F11: upgrade path advisor ----------
+
+    @Test
+    void describedBikeIsSavedThenUpgraded() {
+        Map<Long, BikeBuild> table = fakeBuildTable();
+        Part pedals = withId(part(PartCategory.PEDALS, Map.of()), 5L);   // $50
+        when(partRepo.findAll()).thenReturn(List.of(pedals));
+        llm.thenAnswer("{\"matched\": [], \"stock\": [\"PEDALS\"]}")
+           .thenAnswer("{\"stages\": [{\"options\": [1], \"reason\": \"pedals first\"}]}");
+
+        UpgradeAdvisor.Plan plan = service.planUpgrade(null, "stock complete with plastic pedals", new BigDecimal("100"), RidingStyle.STREET);
+
+        assertEquals(1, table.size());   // the described bike was saved so stages can be applied
+        assertEquals("My current bike", plan.bikeName());
+        assertTrue(plan.aiStaged());
+        assertSame(pedals, plan.stages().get(0).options().get(0).parts().get(0));
+    }
+
+    @Test
+    void upgradeNeedsABuildOrADescription() {
+        assertThrows(IllegalArgumentException.class, () -> service.planUpgrade(null, " ", new BigDecimal("100"), null));
     }
 }

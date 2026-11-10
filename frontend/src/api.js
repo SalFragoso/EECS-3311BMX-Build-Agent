@@ -48,6 +48,15 @@ export const api = {
       swaps: swaps.map((s) => `${s.slot}:${s.to.id}`).join(","),
     }),
 
+  applyParts: (id, parts) =>
+    request("POST", `/builds/${id}/apply-swaps`, {
+      swaps: parts.map((p) => `${p.category}:${p.id}`).join(","),
+    }),
+
+  // F11 upgrade path advisor
+  upgrade: ({ buildId, description, budget, style }) =>
+    request("POST", "/agent/upgrade", { buildId, description, budget, style }),
+
   // AI agent: F02 planner, F09 Q&A, F01 style
   plan: (requestText, name) => request("POST", "/agent/plan", { request: requestText, name }),
   ask: (question, conversationId, buildId) =>
