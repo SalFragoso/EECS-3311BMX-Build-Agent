@@ -8,7 +8,15 @@ import com.salvador.bmxbuilder.domain.RidingStyle;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
 import com.salvador.bmxbuilder.domain.compatibility.RuleResult;
 import com.salvador.bmxbuilder.domain.compatibility.Status;
+import com.salvador.bmxbuilder.pricing.BuildPriceSummary;
+import com.salvador.bmxbuilder.pricing.PriceComparison;
+import com.salvador.bmxbuilder.pricing.PriceQuote;
+import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
+import com.salvador.bmxbuilder.recommend.RiderProfile;
+import com.salvador.bmxbuilder.recommend.StyleRecommendation;
 import com.salvador.bmxbuilder.service.AgentAnswer;
+import com.salvador.bmxbuilder.service.BuildComparison;
+import com.salvador.bmxbuilder.service.OptimizationResult;
 import com.salvador.bmxbuilder.service.BuildService;
 import com.salvador.bmxbuilder.service.BuildView;
 import com.salvador.bmxbuilder.service.NotFoundException;
@@ -23,6 +31,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -39,6 +49,7 @@ public class BmxCli implements CommandLineRunner {
 
     private final BuildService service;
     private Long currentBuildId;   // the build that add/remove/show/check work on
+    private RidingStyle lastStyle;  // from 'recommend', used by 'optimize'
 
     public BmxCli(BuildService service) {
         this.service = service;
@@ -139,6 +150,116 @@ public class BmxCli implements CommandLineRunner {
                     out.println("  Sources: " + String.join("; ", answer.sources()));
                 }
             }
+            case "recommend" -> {
+                Map<String, String> o = options(args);
+                RiderProfile profile = new RiderProfile(
+                        (int) parseId(require(o, "height", "recommend --height 175 --spots street,skatepark --goals grind rails")).longValue(),
+                        o.get("experience"),
+                        o.containsKey("spots") ? Arrays.asList(o.get("spots").split("\\s*,\\s*")) : List.of(),
+                        o.get("goals"),
+                        o.containsKey("budget") ? parseMoney(o.get("budget")) : null,
+                        o.containsKey("brakes"));
+                StyleRecommendation r = service.recommendStyle(profile);
+                if (r.note() != null) {
+                    out.println("  " + r.note());
+                }
+                out.println("  Recommended frame top tube: " + r.topTube());
+                for (StyleRecommendation.RankedStyle rs : r.ranked()) {
+                    out.printf("  %-9s %3d  %s%n", rs.style(), rs.score(), rs.reason());
+                }
+                if (r.close()) {
+                    out.println("  Your top two styles are close, so pick whichever sounds more fun.");
+                }
+                lastStyle = r.best();
+                out.println("  Saved " + lastStyle + " as your style for 'optimize'." + (r.aiBased() ? "  (" + r.tokensUsed() + " tokens)" : ""));
+            }
+            case "prices" -> {
+                Long partId = parseId(arg(args, 0, "prices <partId> [--refresh]"));
+                PriceComparison c = service.comparePrices(partId, Arrays.asList(args).contains("--refresh"));
+                out.println("  Prices for " + c.partName() + " (sample store data):");
+                if (!c.hasQuotes()) {
+                    out.println("  No store prices. Catalog estimate: " + money(c.estimate()));
+                }
+                for (PriceQuote q : c.quotes()) {
+                    out.printf("  %-30s %12s + %10s shipping = %12s %s  (updated %s)%n", q.store(), money(q.price()),
+                            money(q.shipping()), money(q.totalCad()), q.inStock() ? "" : "OUT OF STOCK", q.updatedAt());
+                }
+                c.unavailableSources().forEach(sname -> out.println("  " + sname + ": unavailable right now"));
+            }
+            case "buildprices" -> {
+                BuildPriceSummary b = service.buildPrices(requireBuild());
+                for (BuildPriceSummary.SlotPrice sp : b.slots()) {
+                    out.printf("  %-15s %-32s %12s at %s%n", sp.slot(), sp.partName(),
+                            sp.best() == null ? money(sp.msrp()) : money(sp.best().totalCad()),
+                            sp.best() == null ? "MSRP (no store has it in stock)" : sp.best().store());
+                }
+                out.println("  MSRP total " + money(b.msrpTotal()) + ", cheapest total " + money(b.cheapestTotal())
+                        + ", you save " + money(b.savings()));
+            }
+            case "optimize" -> {
+                Map<String, String> o = options(args);
+                BigDecimal target = parseMoney(arg(args, 0, "optimize <target> [--lock FRAME,FORK] [--style STREET] [--apply]"));
+                List<PartCategory> locked = new ArrayList<>();
+                if (o.containsKey("lock")) {
+                    for (String slot : o.get("lock").split("\\s*,\\s*")) {
+                        locked.add(parseSlot(slot));
+                    }
+                }
+                RidingStyle style = o.containsKey("style") ? parseEnum(RidingStyle.class, o.get("style")) : lastStyle;
+                OptimizationResult r = service.optimizeBudget(requireBuild(), target, locked, style);
+                for (BudgetOptimizer.Swap sw : r.plan().swaps()) {
+                    out.printf("  %-15s %s -> [%d] %s  (%s)%n", sw.slot(), sw.from().getName(), sw.to().getId(),
+                            sw.to().getName(), sw.reason());
+                }
+                out.println("  " + r.plan().message());
+                if (r.explanation() != null && !r.plan().swaps().isEmpty()) {
+                    out.println();
+                    out.println(r.explanation());
+                }
+                if (o.containsKey("apply") && !r.plan().swaps().isEmpty()) {
+                    Map<PartCategory, Long> picks = new EnumMap<>(PartCategory.class);
+                    r.plan().swaps().forEach(sw -> picks.put(sw.slot(), sw.to().getId()));
+                    printBuild(service.applySwaps(requireBuild(), picks), out);
+                } else if (!r.plan().swaps().isEmpty()) {
+                    out.println("  Run the same command with --apply to make these swaps.");
+                }
+            }
+            case "compare" -> {
+                List<Long> ids = new ArrayList<>();
+                for (String a : args) {
+                    ids.add(parseId(a));
+                }
+                BuildComparison c = service.compareBuilds(ids);
+                StringBuilder header = new StringBuilder(String.format("  %-15s", ""));
+                c.builds().forEach(b -> header.append(String.format(" %-28s", "[" + b.id() + "] " + b.name())));
+                out.println(header);
+                for (BuildComparison.Row row : c.rows()) {
+                    StringBuilder line = new StringBuilder(String.format("%s %-15s", row.differs() ? "*" : " ", row.slot()));
+                    row.parts().forEach(n -> line.append(String.format(" %-28s", n == null ? "-" : n)));
+                    out.println(line);
+                }
+                StringBuilder totals = new StringBuilder(String.format("  %-15s", "Total"));
+                c.builds().forEach(b -> totals.append(String.format(" %-28s", money(b.totalPrice()) + ", " + b.compatibility().overall())));
+                out.println(totals);
+                out.println("  (* = different between builds)");
+            }
+            case "rename" -> {
+                String name = String.join(" ", args);
+                printBuild(service.renameBuild(requireBuild(), name), out);
+            }
+            case "copy" -> {
+                BuildView copy = service.duplicateBuild(requireBuild());
+                currentBuildId = copy.id();
+                out.println("Copied to build " + copy.id() + " (" + copy.name() + "). It's now selected.");
+            }
+            case "delete" -> {
+                Long id = parseId(arg(args, 0, "delete <buildId>"));
+                service.deleteBuild(id);
+                if (id.equals(currentBuildId)) {
+                    currentBuildId = null;
+                }
+                out.println("Deleted build " + id + ".");
+            }
             default -> out.println("Unknown command '" + cmd + "'. Type 'help'.");
         }
     }
@@ -171,6 +292,36 @@ public class BmxCli implements CommandLineRunner {
         }
         String keyword = keywords.isEmpty() ? null : String.join(" ", keywords);
         return new PartQuery(keyword, category, min, max, style);
+    }
+
+    /** --key value words --flag  ->  {key: "value words", flag: ""} */
+    Map<String, String> options(String[] args) {
+        Map<String, String> out = new HashMap<>();
+        String key = null;
+        StringBuilder value = new StringBuilder();
+        for (String a : args) {
+            if (a.startsWith("--")) {
+                if (key != null) {
+                    out.put(key, value.toString().trim());
+                }
+                key = a.substring(2).toLowerCase();
+                value.setLength(0);
+            } else if (key != null) {
+                value.append(a).append(' ');
+            }
+        }
+        if (key != null) {
+            out.put(key, value.toString().trim());
+        }
+        return out;
+    }
+
+    private String require(Map<String, String> options, String key, String usage) {
+        String v = options.get(key);
+        if (v == null || v.isBlank()) {
+            throw new IllegalArgumentException("Usage: " + usage);
+        }
+        return v;
     }
 
     private PartCategory parseSlot(String text) {
@@ -231,6 +382,16 @@ public class BmxCli implements CommandLineRunner {
                   fits <SLOT>                list catalog parts that would fit a slot
                   plan <request>             AI plans a full build, e.g. plan street bike under 2000, no brakes
                   ask <question>             ask the BMX assistant, e.g. ask what's a freecoaster?
+                  recommend --height <cm> --spots street,skatepark [--goals ...] [--experience BEGINNER] [--budget 1500] [--brakes]
+                                             AI recommends a riding style and frame size
+                  prices <partId> [--refresh] compare store prices for a part
+                  buildprices                cheapest store for each part in the selected build
+                  optimize <target> [--lock FRAME,FORK] [--style STREET] [--apply]
+                                             cheaper swaps to hit a budget, explained by the AI
+                  compare <id> <id> [<id>]   compare two or three builds side by side
+                  rename <name>              rename the selected build
+                  copy                       duplicate the selected build
+                  delete <buildId>           delete a build
                   quit""");
     }
 

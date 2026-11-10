@@ -20,6 +20,7 @@ import com.salvador.bmxbuilder.domain.*;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityChecker;
 import com.salvador.bmxbuilder.pricing.PriceService;
 import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
+import com.salvador.bmxbuilder.recommend.StyleRecommender;
 import com.salvador.bmxbuilder.domain.compatibility.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class BuildServiceTest {
                 new RetrieveKnowledgeTool(knowledge)));
         AgentOrchestrator agent = new AgentOrchestrator(llm, tools, new ConversationMemory());
         service = new BuildService(partRepo, buildRepo, checker, agent, knowledge, new PriceService(List.of()),
-                new BudgetOptimizer(checker));
+                new BudgetOptimizer(checker), new StyleRecommender(agent, knowledge));
 
         // save() hands back whatever it was given, like the real repository does
         when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -216,7 +217,7 @@ class BuildServiceTest {
         BuildService flaky = new BuildService(partRepo, buildRepo, new CompatibilityChecker(),
                 new AgentOrchestrator(llm2, new ToolRegistry(List.of(new AddPartToBuildTool(buildRepo, partRepo,
                         new CompatibilityChecker()))), new ConversationMemory()), new KnowledgeRetriever(),
-                new PriceService(List.of()), new BudgetOptimizer(new CompatibilityChecker()));
+                new PriceService(List.of()), new BudgetOptimizer(new CompatibilityChecker()), null);
 
         PlanResult result = flaky.planBuild("street bike", null);
 

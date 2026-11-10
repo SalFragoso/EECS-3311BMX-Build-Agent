@@ -22,6 +22,9 @@ import com.salvador.bmxbuilder.pricing.BuildPriceSummary;
 import com.salvador.bmxbuilder.pricing.PriceComparison;
 import com.salvador.bmxbuilder.pricing.PriceService;
 import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
+import com.salvador.bmxbuilder.recommend.RiderProfile;
+import com.salvador.bmxbuilder.recommend.StyleRecommendation;
+import com.salvador.bmxbuilder.recommend.StyleRecommender;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -47,10 +50,11 @@ public class BuildService {
     private final KnowledgeRetriever knowledge;
     private final PriceService prices;
     private final BudgetOptimizer optimizer;
+    private final StyleRecommender styles;
 
     public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker,
                         AgentOrchestrator agent, KnowledgeRetriever knowledge, PriceService prices,
-                        BudgetOptimizer optimizer) {
+                        BudgetOptimizer optimizer, StyleRecommender styles) {
         this.parts = parts;
         this.builds = builds;
         this.checker = checker;
@@ -58,6 +62,7 @@ public class BuildService {
         this.knowledge = knowledge;
         this.prices = prices;
         this.optimizer = optimizer;
+        this.styles = styles;
     }
 
     // ---------- F03: catalog search ----------
@@ -134,6 +139,12 @@ public class BuildService {
         return parts.findByCategory(slot).stream()
                 .filter(p -> checker.isCompatible(build, p))
                 .toList();
+    }
+
+    // ---------- F01: rider profile and style recommendation ----------
+
+    public StyleRecommendation recommendStyle(RiderProfile profile) {
+        return styles.recommend(profile);
     }
 
     // ---------- F10: saved builds and comparison ----------

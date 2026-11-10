@@ -1,5 +1,7 @@
 package com.salvador.bmxbuilder.web;
 
+import com.salvador.bmxbuilder.recommend.RiderProfile;
+import com.salvador.bmxbuilder.recommend.StyleRecommendation;
 import com.salvador.bmxbuilder.service.AgentAnswer;
 import com.salvador.bmxbuilder.service.BuildService;
 import com.salvador.bmxbuilder.service.PlanResult;
@@ -7,6 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /** REST API for the AI agent features. */
 @RestController
@@ -32,5 +37,16 @@ public class AgentController {
                            @RequestParam(name = "conversationId", required = false) String conversationId,
                            @RequestParam(name = "buildId", required = false) Long buildId) {
         return service.askQuestion(conversationId == null ? "web" : conversationId, question, buildId);
+    }
+
+    // POST /api/agent/recommend-style?heightCm=175&experience=BEGINNER&spots=street,skatepark&goals=grind rails&wantsBrakes=false
+    @PostMapping("/recommend-style")
+    public StyleRecommendation recommendStyle(@RequestParam("heightCm") int heightCm,
+                                              @RequestParam(name = "experience", required = false) String experience,
+                                              @RequestParam(name = "spots", required = false) List<String> spots,
+                                              @RequestParam(name = "goals", required = false) String goals,
+                                              @RequestParam(name = "budget", required = false) BigDecimal budget,
+                                              @RequestParam(name = "wantsBrakes", defaultValue = "false") boolean wantsBrakes) {
+        return service.recommendStyle(new RiderProfile(heightCm, experience, spots, goals, budget, wantsBrakes));
     }
 }

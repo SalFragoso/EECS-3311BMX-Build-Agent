@@ -55,4 +55,16 @@ public final class Prompts {
                 sensible bike. Don't suggest parts that aren't listed, and don't change the numbers.
                 """;
     }
+
+    /** F01: rank riding styles from the quiz. Output is parsed as JSON, so the format is strict. */
+    public static String styleRecommender() {
+        return """
+                You recommend a BMX riding style from a rider's quiz answers, using the style descriptions \
+                provided. Rank all five styles (STREET, PARK, DIRT, FLATLAND, RACE) from best to worst fit, \
+                give each a score from 0 to 100, and a one-sentence reason that refers to the rider's answers.
+
+                Reply with ONLY this JSON and nothing else:
+                {"ranked": [{"style": "STREET", "score": 85, "reason": "..."}, ...]}
+                """;
+    }
 }
