@@ -14,15 +14,22 @@ import com.salvador.bmxbuilder.domain.BikeBuild;
 import com.salvador.bmxbuilder.domain.Part;
 import com.salvador.bmxbuilder.domain.PartCategory;
 import com.salvador.bmxbuilder.domain.PartQuery;
+import com.salvador.bmxbuilder.domain.RidingStyle;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityChecker;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityMonitor;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
 import com.salvador.bmxbuilder.pricing.BuildPriceSummary;
 import com.salvador.bmxbuilder.pricing.PriceComparison;
 import com.salvador.bmxbuilder.pricing.PriceService;
+import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,15 +46,18 @@ public class BuildService {
     private final AgentOrchestrator agent;
     private final KnowledgeRetriever knowledge;
     private final PriceService prices;
+    private final BudgetOptimizer optimizer;
 
     public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker,
-                        AgentOrchestrator agent, KnowledgeRetriever knowledge, PriceService prices) {
+                        AgentOrchestrator agent, KnowledgeRetriever knowledge, PriceService prices,
+                        BudgetOptimizer optimizer) {
         this.parts = parts;
         this.builds = builds;
         this.checker = checker;
         this.agent = agent;
         this.knowledge = knowledge;
         this.prices = prices;
+        this.optimizer = optimizer;
     }
 
     // ---------- F03: catalog search ----------
@@ -124,6 +134,112 @@ public class BuildService {
         return parts.findByCategory(slot).stream()
                 .filter(p -> checker.isCompatible(build, p))
                 .toList();
+    }
+
+    // ---------- F10: saved builds and comparison ----------
+
+    public BuildView renameBuild(Long buildId, String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("A build needs a name");
+        }
+        String clean = name.trim();
+        boolean taken = builds.findAll().stream()
+                .anyMatch(b -> !Objects.equals(b.getId(), buildId) && clean.equalsIgnoreCase(b.getName()));
+        if (taken) {
+            throw new IllegalArgumentException("A build named '" + clean + "' already exists. Pick another name.");
+        }
+        BikeBuild build = loadBuild(buildId);
+        build.setName(clean);
+        BikeBuild saved = builds.save(build);
+        return BuildView.of(saved, checker.check(saved));
+    }
+
+    /** Saves a copy under a new name, e.g. to try changes without losing the original. */
+    public BuildView duplicateBuild(Long buildId) {
+        BikeBuild original = loadBuild(buildId);
+        BikeBuild copy = new BikeBuild(original.getName() + " (copy)");
+        original.getSlots().forEach(copy::setPart);
+        BikeBuild saved = builds.save(copy);
+        return BuildView.of(saved, checker.check(saved));
+    }
+
+    public void deleteBuild(Long buildId) {
+        loadBuild(buildId);   // 404 if it doesn't exist
+        builds.deleteById(buildId);
+    }
+
+    public BuildComparison compareBuilds(List<Long> buildIds) {
+        if (buildIds == null || buildIds.size() < 2 || buildIds.size() > 3) {
+            throw new IllegalArgumentException("Pick two or three builds to compare");
+        }
+        List<BikeBuild> loaded = buildIds.stream().map(this::loadBuild).toList();
+        List<BuildView> views = loaded.stream().map(b -> BuildView.of(b, checker.check(b))).toList();
+
+        List<BuildComparison.Row> rows = new ArrayList<>();
+        for (PartCategory slot : PartCategory.values()) {
+            List<String> names = new ArrayList<>();
+            List<Long> ids = new ArrayList<>();
+            for (BikeBuild b : loaded) {
+                Part p = b.getPart(slot);
+                names.add(p == null ? null : p.getName());
+                ids.add(p == null ? null : p.getId());
+            }
+            if (names.stream().allMatch(Objects::isNull)) {
+                continue;   // no build uses this slot
+            }
+            boolean differs = ids.stream().distinct().count() > 1;
+            rows.add(new BuildComparison.Row(slot, names, differs));
+        }
+        return new BuildComparison(views, rows);
+    }
+
+    // ---------- F07: budget optimizer ----------
+
+    /**
+     * Finds swaps that bring the build under the target (deterministic), then asks the agent to
+     * explain the trade-offs. Nothing is changed until the rider applies the swaps.
+     */
+    public OptimizationResult optimizeBudget(Long buildId, BigDecimal target, List<PartCategory> locked, RidingStyle style) {
+        BikeBuild build = loadBuild(buildId);
+        RidingStyle riderStyle = (style == null) ? RidingStyle.STREET : style;
+        BudgetOptimizer.Plan plan = optimizer.optimize(build, target,
+                locked == null || locked.isEmpty() ? EnumSet.noneOf(PartCategory.class) : EnumSet.copyOf(locked),
+                riderStyle, parts.findAll());
+        if (plan.swaps().isEmpty()) {
+            return new OptimizationResult(plan, plan.message(), false, 0);
+        }
+
+        StringBuilder facts = new StringBuilder("Rider style: " + riderStyle + "\nTarget: $" + plan.target().getAmount()
+                + "\nOriginal total: $" + plan.originalTotal().getAmount() + "\nNew total: $" + plan.newTotal().getAmount()
+                + "\nSwaps:");
+        for (BudgetOptimizer.Swap s : plan.swaps()) {
+            facts.append("\n- ").append(s.slot()).append(": ").append(s.from().getName()).append(" -> ")
+                    .append(s.to().getName()).append(" (").append(s.reason()).append(")");
+        }
+        facts.append("\nResult: ").append(plan.message());
+
+        try {
+            AgentResult result = agent.run(new AgentTask("optimize-" + buildId, Prompts.budgetExplainer(),
+                    "Explain these budget swaps.", facts.toString(), Set.of(), 2));
+            return new OptimizationResult(plan, result.text(), true, result.tokensUsed());
+        } catch (LLMException e) {
+            // F07 fallback: the swaps still stand, just without the AI's explanation
+            return new OptimizationResult(plan, "AI explanation unavailable (" + e.getMessage()
+                    + "). Swaps were picked cheapest-first while protecting your style's key parts.", false, 0);
+        }
+    }
+
+    /** Puts every chosen swap into the build. */
+    public BuildView applySwaps(Long buildId, Map<PartCategory, Long> selections) {
+        if (selections == null || selections.isEmpty()) {
+            throw new IllegalArgumentException("No swaps selected");
+        }
+        BikeBuild build = loadBuild(buildId);
+        CompatibilityMonitor monitor = new CompatibilityMonitor(checker);
+        build.addListener(monitor);
+        selections.forEach((slot, partId) -> build.setPart(slot, getPart(partId)));
+        BikeBuild saved = builds.save(build);
+        return BuildView.of(saved, reportFrom(monitor, saved));
     }
 
     // ---------- F06: price comparison ----------

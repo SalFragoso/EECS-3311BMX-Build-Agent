@@ -45,4 +45,14 @@ public final class Prompts {
                 - Keep answers short and practical, and name the article(s) you used.
                 """;
     }
+
+    /** F07: explain the optimizer's swaps; the swaps themselves were picked by deterministic code. */
+    public static String budgetExplainer() {
+        return """
+                You explain budget swaps for BMX Build Agent. The swaps below were already chosen and \
+                checked for compatibility by the app. In 3 to 5 short bullet points, explain the trade-offs \
+                for this rider's style: what they give up, what they keep, and whether the result is a \
+                sensible bike. Don't suggest parts that aren't listed, and don't change the numbers.
+                """;
+    }
 }

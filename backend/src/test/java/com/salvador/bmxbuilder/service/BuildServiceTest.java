@@ -19,6 +19,7 @@ import com.salvador.bmxbuilder.data.PartRepository;
 import com.salvador.bmxbuilder.domain.*;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityChecker;
 import com.salvador.bmxbuilder.pricing.PriceService;
+import com.salvador.bmxbuilder.recommend.BudgetOptimizer;
 import com.salvador.bmxbuilder.domain.compatibility.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,8 @@ class BuildServiceTest {
                 new CheckCompatibilityTool(buildRepo, checker),
                 new RetrieveKnowledgeTool(knowledge)));
         AgentOrchestrator agent = new AgentOrchestrator(llm, tools, new ConversationMemory());
-        service = new BuildService(partRepo, buildRepo, checker, agent, knowledge, new PriceService(List.of()));
+        service = new BuildService(partRepo, buildRepo, checker, agent, knowledge, new PriceService(List.of()),
+                new BudgetOptimizer(checker));
 
         // save() hands back whatever it was given, like the real repository does
         when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -85,6 +87,7 @@ class BuildServiceTest {
             return b;
         });
         when(buildRepo.findById(any())).thenAnswer(inv -> Optional.ofNullable(table.get((Long) inv.getArgument(0))));
+        when(buildRepo.findAll()).thenAnswer(inv -> new java.util.ArrayList<>(table.values()));
         return table;
     }
 
@@ -213,7 +216,7 @@ class BuildServiceTest {
         BuildService flaky = new BuildService(partRepo, buildRepo, new CompatibilityChecker(),
                 new AgentOrchestrator(llm2, new ToolRegistry(List.of(new AddPartToBuildTool(buildRepo, partRepo,
                         new CompatibilityChecker()))), new ConversationMemory()), new KnowledgeRetriever(),
-                new PriceService(List.of()));
+                new PriceService(List.of()), new BudgetOptimizer(new CompatibilityChecker()));
 
         PlanResult result = flaky.planBuild("street bike", null);
 
@@ -314,5 +317,116 @@ class BuildServiceTest {
     @Test
     void blankQuestionIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> service.askQuestion("t6", " ", null));
+    }
+
+    // ---------- F10: saved builds and comparison ----------
+
+    @Test
+    void compareLinesUpSlotsAndFlagsDifferences() {
+        fakeBuildTable();
+        Part frame = withId(part(PartCategory.FRAME, Map.of()), 1L);
+        Part forkA = withId(part(PartCategory.FORK, Map.of()), 2L);
+        Part forkB = withId(part(PartCategory.FORK, Map.of()), 3L);
+        BikeBuild a = buildRepo.save(new BikeBuild("A"));
+        BikeBuild b = buildRepo.save(new BikeBuild("B"));
+        a.setPart(PartCategory.FRAME, frame);
+        b.setPart(PartCategory.FRAME, frame);
+        a.setPart(PartCategory.FORK, forkA);
+        b.setPart(PartCategory.FORK, forkB);
+
+        BuildComparison c = service.compareBuilds(List.of(a.getId(), b.getId()));
+
+        assertEquals(2, c.builds().size());
+        assertEquals(2, c.rows().size());   // only slots that some build uses
+        assertFalse(c.rows().get(0).differs());   // same frame
+        assertTrue(c.rows().get(1).differs());    // different forks
+    }
+
+    @Test
+    void compareNeedsTwoOrThreeBuilds() {
+        assertThrows(IllegalArgumentException.class, () -> service.compareBuilds(List.of(1L)));
+        assertThrows(IllegalArgumentException.class, () -> service.compareBuilds(List.of(1L, 2L, 3L, 4L)));
+    }
+
+    @Test
+    void duplicateNamesAreRejected() {
+        fakeBuildTable();
+        buildRepo.save(new BikeBuild("Street"));
+        BikeBuild other = buildRepo.save(new BikeBuild("Park"));
+
+        assertThrows(IllegalArgumentException.class, () -> service.renameBuild(other.getId(), "street"));
+        assertEquals("Park v2", service.renameBuild(other.getId(), "Park v2").name());
+    }
+
+    @Test
+    void duplicateCopiesTheParts() {
+        fakeBuildTable();
+        BikeBuild original = buildRepo.save(new BikeBuild("Original"));
+        original.setPart(PartCategory.FRAME, withId(part(PartCategory.FRAME, Map.of()), 1L));
+
+        BuildView copy = service.duplicateBuild(original.getId());
+
+        assertEquals("Original (copy)", copy.name());
+        assertTrue(copy.parts().containsKey(PartCategory.FRAME));
+        assertNotEquals(original.getId(), copy.id());
+    }
+
+    @Test
+    void deletingAMissingBuildIsNotFound() {
+        fakeBuildTable();
+
+        assertThrows(NotFoundException.class, () -> service.deleteBuild(42L));
+    }
+
+    // ---------- F07: budget optimizer ----------
+
+    @Test
+    void optimizerSwapsAreExplainedByTheAgent() {
+        fakeBuildTable();
+        Part bars = withId(part(PartCategory.BARS, Map.of()), 1L);   // $50
+        Part cheapBars = withId(new Part("Test", "Cheap bars", PartCategory.BARS,
+                new Money(new BigDecimal("20"), "CAD"), 900, "x.png"), 2L);
+        BikeBuild build = buildRepo.save(new BikeBuild("Budget"));
+        build.setPart(PartCategory.BARS, bars);
+        when(partRepo.findAll()).thenReturn(List.of(bars, cheapBars));
+        llm.thenAnswer("- Cheaper bars, same feel.");
+
+        OptimizationResult result = service.optimizeBudget(build.getId(), new BigDecimal("30"), List.of(), RidingStyle.STREET);
+
+        assertTrue(result.plan().reachable());
+        assertTrue(result.aiExplained());
+        assertEquals("- Cheaper bars, same feel.", result.explanation());
+        assertTrue(llm.sentMessages.get(0).get(1).content().contains("Cheap bars"));   // the agent saw the facts
+        assertSame(bars, build.getPart(PartCategory.BARS));   // nothing applied yet
+    }
+
+    @Test
+    void optimizerStillWorksWhenTheAiIsDown() {
+        fakeBuildTable();
+        Part bars = withId(part(PartCategory.BARS, Map.of()), 1L);
+        Part cheapBars = withId(new Part("Test", "Cheap bars", PartCategory.BARS,
+                new Money(new BigDecimal("20"), "CAD"), 900, "x.png"), 2L);
+        BikeBuild build = buildRepo.save(new BikeBuild("Budget"));
+        build.setPart(PartCategory.BARS, bars);
+        when(partRepo.findAll()).thenReturn(List.of(bars, cheapBars));
+        llm.down();
+
+        OptimizationResult result = service.optimizeBudget(build.getId(), new BigDecimal("30"), null, null);
+
+        assertFalse(result.aiExplained());
+        assertEquals(1, result.plan().swaps().size());
+    }
+
+    @Test
+    void applyingSwapsUpdatesTheBuild() {
+        fakeBuildTable();
+        BikeBuild build = buildRepo.save(new BikeBuild("Budget"));
+        build.setPart(PartCategory.BARS, withId(part(PartCategory.BARS, Map.of()), 1L));
+        Part cheapBars = withId(part(PartCategory.BARS, Map.of()), 2L);
+        when(partRepo.findById(2L)).thenReturn(Optional.of(cheapBars));
+
+        BuildView view = service.applySwaps(build.getId(), Map.of(PartCategory.BARS, 2L));
+
+        assertSame(cheapBars, view.parts().get(PartCategory.BARS));
     }
 }
