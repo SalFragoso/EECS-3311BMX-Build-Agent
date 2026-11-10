@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+<zoom_level>10</zoom_level>
+<element><id>UMLClass</id><coordinates><x>240</x><y>600</y><w>130</w><h>40</h></coordinates><panel_attributes>CatalogController
+--
+--
++search(q: PartQuery): List&lt;Part&gt;
++prices(id: Long, refresh: boolean): PriceComparison</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>420</x><y>600</y><w>120</w><h>40</h></coordinates><panel_attributes>BuildController
+--
+--
++create(name): BuildView
++selectPart(id, slot, partId): BuildView
++optimize(id, target, locked, style): OptimizationResult
++compare(ids): BuildComparison</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>590</x><y>600</y><w>120</w><h>40</h></coordinates><panel_attributes>AgentController
+--
+--
++plan(request, name): PlanResult
++ask(question, conversationId, buildId): AgentAnswer
++recommendStyle(...): StyleRecommendation</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>760</x><y>600</y><w>120</w><h>40</h></coordinates><panel_attributes>BmxCli
+--
+-currentBuildId: Long
+--
++run(args: String...)
+~repl(in: Scanner, out: PrintStream)
+-dispatch(cmd, args, out)</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>380</x><y>250</y><w>450</w><h>290</h></coordinates><panel_attributes>BuildService
+--
+--
++searchParts(q: PartQuery): List&lt;Part&gt;
++createBuild(name): BuildView
++selectPart(buildId, slot, partId): BuildView
++checkCompatibility(buildId): CompatibilityReport
++comparePrices(partId, refresh): PriceComparison
++optimizeBudget(buildId, target, locked, style): OptimizationResult
++compareBuilds(ids): BuildComparison
++recommendStyle(p: RiderProfile): StyleRecommendation
++planBuild(request, name): PlanResult
++askQuestion(convId, question, buildId): AgentAnswer</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>30</x><y>120</y><w>120</w><h>60</h></coordinates><panel_attributes>&lt;&lt;record&gt;&gt;
+BuildView
+--
+id: Long
+parts: Map&lt;PartCategory, Part&gt;
+totalPrice: Money
+compatibility: CompatibilityReport
+--</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>160</x><y>120</y><w>120</w><h>60</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+/PartRepository/
+--
+--
++findByCategory(c): List&lt;Part&gt;
++search(q: PartQuery): List&lt;Part&gt;</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>330</x><y>120</y><w>120</w><h>60</h></coordinates><panel_attributes>&lt;&lt;interface&gt;&gt;
+/BuildRepository/
+--
+--
++findById(id): Optional&lt;BikeBuild&gt;
++save(b): BikeBuild</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>610</x><y>30</y><w>160</w><h>40</h></coordinates><panel_attributes>CompatibilityChecker
+--
+-rules: List&lt;CompatibilityRule&gt;
+--
++check(b: BikeBuild): CompatibilityReport
++isCompatible(b, candidate): boolean</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>830</x><y>30</y><w>140</w><h>40</h></coordinates><panel_attributes>AgentOrchestrator
+--
+--
++run(task: AgentTask): AgentResult</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>510</x><y>130</y><w>120</w><h>40</h></coordinates><panel_attributes>PriceService
+--
+-sources: List&lt;PriceSource&gt;
+--
++compare(p, refresh): PriceComparison
++cheapestBuild(b): BuildPriceSummary</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>680</x><y>130</y><w>130</w><h>40</h></coordinates><panel_attributes>BudgetOptimizer
+--
+--
++optimize(b, target, locked, style, catalog): Plan</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>UMLClass</id><coordinates><x>880</x><y>130</y><w>150</w><h>40</h></coordinates><panel_attributes>StyleRecommender
+--
+--
++recommend(p: RiderProfile): StyleRecommendation
++topTubeRange(cm): String</panel_attributes><additional_attributes></additional_attributes></element>
+<element><id>Relation</id><coordinates><x>322</x><y>530</y><w>100</w><h>80</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>90;10;10;70</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>481</x><y>530</y><w>53</w><h>80</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>43;10;10;70</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>624</x><y>530</y><w>32</w><h>80</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;22;70</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>734</x><y>530</y><w>77</w><h>80</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;67;70</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>257</x><y>170</y><w>133</w><h>92</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;123;82</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>406</x><y>170</y><w>81</w><h>90</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;71;80</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>631</x><y>60</y><w>64</w><h>200</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>54;10;10;190</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>719</x><y>60</y><w>174</w><h>200</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>164;10;10;190</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>563</x><y>160</y><w>31</w><h>100</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;21;90</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>678</x><y>160</y><w>66</w><h>100</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>56;10;10;90</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>802</x><y>160</y><w>134</w><h>100</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>124;10;10;90</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>140</x><y>169</y><w>250</w><h>129</h></coordinates><panel_attributes>lt=&lt;.
+creates</panel_attributes><additional_attributes>10;10;240;119</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>691</x><y>60</y><w>53</w><h>80</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;43;70</additional_attributes></element>
+<element><id>Relation</id><coordinates><x>901</x><y>60</y><w>53</w><h>80</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;43;70</additional_attributes></element>
+</diagram>
