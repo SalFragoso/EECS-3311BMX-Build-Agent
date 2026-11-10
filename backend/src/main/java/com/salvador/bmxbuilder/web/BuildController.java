@@ -3,6 +3,7 @@ package com.salvador.bmxbuilder.web;
 import com.salvador.bmxbuilder.domain.Part;
 import com.salvador.bmxbuilder.domain.PartCategory;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
+import com.salvador.bmxbuilder.pricing.BuildPriceSummary;
 import com.salvador.bmxbuilder.service.BuildService;
 import com.salvador.bmxbuilder.service.BuildView;
 import org.springframework.http.HttpStatus;
@@ -67,5 +68,11 @@ public class BuildController {
     public List<Part> compatibleParts(@PathVariable("id") Long id,
                                       @RequestParam("slot") PartCategory slot) {
         return service.compatibleParts(id, slot);
+    }
+
+    // GET /api/builds/1/prices  (F06: cheapest store for each part)
+    @GetMapping("/{id}/prices")
+    public BuildPriceSummary prices(@PathVariable("id") Long id) {
+        return service.buildPrices(id);
     }
 }

@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @Order(1) // seed the catalog before anything else that runs at startup (like the CLI)
@@ -20,12 +21,26 @@ public class SampleDataLoader implements CommandLineRunner {
         this.parts = parts;
     }
 
+    /**
+     * Adds any sample part that isn't in the database yet (matched by brand + model), so new sample
+     * parts show up on the next start without wiping the table, and existing ids stay the same.
+     */
     @Override
     public void run(String... args) {
-        if (parts.count() > 0) return;
+        Set<String> existing = parts.findAll().stream()
+                .map(p -> p.getBrand() + "|" + p.getModel())
+                .collect(Collectors.toSet());
+        List<Part> missing = sampleParts().stream()
+                .filter(p -> !existing.contains(p.getBrand() + "|" + p.getModel()))
+                .toList();
+        if (!missing.isEmpty()) {
+            parts.saveAll(missing);
+        }
+    }
 
-        // Sample data only: models and prices are illustrative, not real listings.
-        parts.saveAll(List.of(
+    // Sample data only: models and prices are illustrative, not real listings.
+    static List<Part> sampleParts() {
+        return List.of(
                 part("Cult", "Hawk", PartCategory.FRAME, "449.99", 2150, "frame_cult_hawk.png",
                         Set.of(RidingStyle.STREET, RidingStyle.PARK),
                         Map.of("topTube", "20.75", "bbType", "MID", "rearAxle", "14mm",
@@ -85,11 +100,58 @@ public class SampleDataLoader implements CommandLineRunner {
                         Map.of("type", "u-brake")),
                 part("Cult", "Vans Wide Tires", PartCategory.TIRES, "44.99", 760, "tires_cult_vans_wide.png",
                         Set.of(RidingStyle.STREET),
-                        Map.of("size", "20x2.5"))
-        ));
+                        Map.of("size", "20x2.5")),
+
+                // Budget and alternative parts, so the optimizer and price comparison have choices
+                part("Salt", "Pro Fork", PartCategory.FORK, "99.99", 1050, "fork_salt_pro.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("steerer", "1-1/8", "offset", "30mm", "axle", "10mm", "maxTire", "2.4")),
+                part("Salt", "Classic Bars", PartCategory.BARS, "49.99", 900, "bars_salt_classic.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("rise", "9in")),
+                part("Salt", "AM Stem", PartCategory.STEM, "39.99", 320, "stem_salt_am.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("reach", "48mm", "barClamp", "22.2mm")),
+                part("Salt", "Rookie Cranks", PartCategory.CRANKS, "119.99", 1100, "cranks_salt_rookie.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK),
+                        Map.of("spindle", "19mm")),
+                part("Odyssey", "Thunderbolt Cranks", PartCategory.CRANKS, "279.99", 850, "cranks_odyssey_thunderbolt.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK),
+                        Map.of("spindle", "22mm")),
+                part("Salt", "Pro Sprocket", PartCategory.SPROCKET, "19.99", 140, "sprocket_salt_pro.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("teeth", "25", "bore", "19mm")),
+                part("Odyssey", "Grandstand Pedals", PartCategory.PEDALS, "54.99", 390, "pedals_odyssey_grandstand.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("spindle", "9/16")),
+                part("Salt", "Rookie Front Hub", PartCategory.FRONT_HUB, "39.99", 380, "fhub_salt_rookie.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK),
+                        Map.of("axle", "10mm")),
+                part("Salt", "Everest Cassette", PartCategory.REAR_HUB, "99.99", 600, "rhub_salt_everest.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("axle", "14mm", "driver", "9T")),
+                part("Odyssey", "Clutch Freecoaster", PartCategory.REAR_HUB, "279.99", 700, "rhub_odyssey_clutch.png",
+                        Set.of(RidingStyle.STREET),
+                        Map.of("axle", "14mm", "driver", "9T", "type", "freecoaster")),
+                part("Salt", "Valon Rims", PartCategory.RIMS, "59.99", 1250, "rims_salt_valon.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("size", "20", "holes", "36")),
+                part("Salt", "Pivotal Seat", PartCategory.SEAT, "24.99", 380, "seat_salt_pivotal.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK, RidingStyle.DIRT),
+                        Map.of("type", "pivotal")),
+                part("Salt", "Tracer Tires", PartCategory.TIRES, "29.99", 700, "tires_salt_tracer.png",
+                        Set.of(RidingStyle.STREET, RidingStyle.PARK),
+                        Map.of("size", "20x2.35")),
+                part("Fit", "Race Lite Frame", PartCategory.FRAME, "399.99", 1700, "frame_fit_racelite.png",
+                        Set.of(RidingStyle.RACE),
+                        Map.of("topTube", "21", "bbType", "MID", "rearAxle", "14mm", "headTube", "1-1/8", "maxTire", "2.1")),
+                part("Salt", "Race Tires", PartCategory.TIRES, "34.99", 520, "tires_salt_race.png",
+                        Set.of(RidingStyle.RACE),
+                        Map.of("size", "20x1.75"))
+        );
     }
 
-    private Part part(String brand, String model, PartCategory category, String price,
+    private static Part part(String brand, String model, PartCategory category, String price,
                       double grams, String image, Set<RidingStyle> styles, Map<String, String> specs) {
 
         Part p = new Part(brand, model, category, new Money(new BigDecimal(price), "CAD"), grams, image);

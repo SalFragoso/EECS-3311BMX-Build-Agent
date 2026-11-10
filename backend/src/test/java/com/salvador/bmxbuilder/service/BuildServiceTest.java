@@ -18,6 +18,7 @@ import com.salvador.bmxbuilder.data.BuildRepository;
 import com.salvador.bmxbuilder.data.PartRepository;
 import com.salvador.bmxbuilder.domain.*;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityChecker;
+import com.salvador.bmxbuilder.pricing.PriceService;
 import com.salvador.bmxbuilder.domain.compatibility.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,7 @@ class BuildServiceTest {
                 new CheckCompatibilityTool(buildRepo, checker),
                 new RetrieveKnowledgeTool(knowledge)));
         AgentOrchestrator agent = new AgentOrchestrator(llm, tools, new ConversationMemory());
-        service = new BuildService(partRepo, buildRepo, checker, agent, knowledge);
+        service = new BuildService(partRepo, buildRepo, checker, agent, knowledge, new PriceService(List.of()));
 
         // save() hands back whatever it was given, like the real repository does
         when(buildRepo.save(any(BikeBuild.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -211,7 +212,8 @@ class BuildServiceTest {
                 llm.thenCall("add_part_to_build", Map.of("build_id", 1, "slot", "FRAME", "part_id", 1)));
         BuildService flaky = new BuildService(partRepo, buildRepo, new CompatibilityChecker(),
                 new AgentOrchestrator(llm2, new ToolRegistry(List.of(new AddPartToBuildTool(buildRepo, partRepo,
-                        new CompatibilityChecker()))), new ConversationMemory()), new KnowledgeRetriever());
+                        new CompatibilityChecker()))), new ConversationMemory()), new KnowledgeRetriever(),
+                new PriceService(List.of()));
 
         PlanResult result = flaky.planBuild("street bike", null);
 

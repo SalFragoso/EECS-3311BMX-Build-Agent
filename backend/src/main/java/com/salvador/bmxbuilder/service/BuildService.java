@@ -17,6 +17,9 @@ import com.salvador.bmxbuilder.domain.PartQuery;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityChecker;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityMonitor;
 import com.salvador.bmxbuilder.domain.compatibility.CompatibilityReport;
+import com.salvador.bmxbuilder.pricing.BuildPriceSummary;
+import com.salvador.bmxbuilder.pricing.PriceComparison;
+import com.salvador.bmxbuilder.pricing.PriceService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,14 +38,16 @@ public class BuildService {
     private final CompatibilityChecker checker;
     private final AgentOrchestrator agent;
     private final KnowledgeRetriever knowledge;
+    private final PriceService prices;
 
     public BuildService(PartRepository parts, BuildRepository builds, CompatibilityChecker checker,
-                        AgentOrchestrator agent, KnowledgeRetriever knowledge) {
+                        AgentOrchestrator agent, KnowledgeRetriever knowledge, PriceService prices) {
         this.parts = parts;
         this.builds = builds;
         this.checker = checker;
         this.agent = agent;
         this.knowledge = knowledge;
+        this.prices = prices;
     }
 
     // ---------- F03: catalog search ----------
@@ -119,6 +124,16 @@ public class BuildService {
         return parts.findByCategory(slot).stream()
                 .filter(p -> checker.isCompatible(build, p))
                 .toList();
+    }
+
+    // ---------- F06: price comparison ----------
+
+    public PriceComparison comparePrices(Long partId, boolean refresh) {
+        return prices.compare(getPart(partId), refresh);
+    }
+
+    public BuildPriceSummary buildPrices(Long buildId) {
+        return prices.cheapestBuild(loadBuild(buildId));
     }
 
     // ---------- F02: AI build planner ----------
