@@ -144,4 +144,22 @@ class AgentOrchestratorTest {
         assertEquals(ConversationMemory.MAX_MESSAGES_PER_CONVERSATION, all.size());
         assertEquals("message 5", all.get(0).content());
     }
+
+    @Test
+    void olderToolResultsAreShortenedButTheNewestStayWhole() {
+        String longResult = "first line\n" + "detail ".repeat(200);
+        List<ChatMessage> history = new ArrayList<>();
+        history.add(ChatMessage.system("sys"));
+        for (int i = 1; i <= 5; i++) {
+            history.add(ChatMessage.tool("call_" + i, longResult));
+        }
+
+        List<ChatMessage> sent = AgentOrchestrator.compact(history);
+
+        assertEquals(history.size(), sent.size());
+        long shortened = sent.stream().filter(m -> m.content().endsWith("(older result shortened)")).count();
+        assertEquals(5 - AgentOrchestrator.FULL_TOOL_RESULTS, shortened);
+        assertEquals(longResult, sent.get(sent.size() - 1).content());
+        assertEquals("call_1", sent.get(1).toolCallId());   // still paired with its tool call
+    }
 }

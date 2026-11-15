@@ -9,15 +9,22 @@ import com.salvador.bmxbuilder.domain.RidingStyle;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Lets the agent search the parts catalog with the same filters as F03. */
+/**
+ * Lets the agent search the parts catalog with the same filters as F03.
+ * With no category and no keyword it returns an overview: a few options for every slot in one call,
+ * so the planner doesn't need a separate search per slot.
+ */
 @Component
 public class SearchCatalogTool implements AgentTool {
 
     static final int MAX_RESULTS = 10;
+    static final int OVERVIEW_PER_SLOT = 4;
 
     private final PartRepository parts;
 
@@ -33,8 +40,10 @@ public class SearchCatalogTool implements AgentTool {
     @Override
     public ToolSpec spec() {
         return new ToolSpec(name(),
-                "Search the BMX parts catalog. Returns up to " + MAX_RESULTS + " parts with their id, price, "
-                        + "weight, riding styles and specs. Only use part ids that this tool returns.",
+                "Search the BMX parts catalog. Returns parts with their id, price, weight, riding styles and specs. "
+                        + "Leave out category and keyword to get up to " + OVERVIEW_PER_SLOT + " options for EVERY slot "
+                        + "in one call. With a category or keyword, returns up to " + MAX_RESULTS + " parts. "
+                        + "Only use part ids that this tool returns.",
                 Schemas.object(Schemas.props(
                         "category", Schemas.enumOf(PartCategory.class, "Which slot/kind of part"),
                         "keyword", Schemas.string("Words to match in the brand or model name"),
@@ -61,10 +70,29 @@ public class SearchCatalogTool implements AgentTool {
         if (found.isEmpty()) {
             return ToolResult.ok("No parts matched. Try removing a filter, like the style or price limit.");
         }
+        if (query.category() == null && (query.keyword() == null || query.keyword().isBlank())) {
+            return ToolResult.ok(overview(found));
+        }
         String lines = found.stream().limit(MAX_RESULTS).map(BuildSummary::part).collect(Collectors.joining("\n"));
         String more = found.size() > MAX_RESULTS
                 ? "\n(" + (found.size() - MAX_RESULTS) + " more; narrow the search to see them)"
                 : "";
         return ToolResult.ok(lines + more);
+    }
+
+    /** Up to OVERVIEW_PER_SLOT parts per slot, cheapest first, grouped by slot. */
+    private String overview(List<Part> found) {
+        Map<PartCategory, List<Part>> bySlot = found.stream()
+                .sorted(Comparator.comparing(p -> p.getPrice().getAmount()))
+                .collect(Collectors.groupingBy(Part::getCategory, () -> new EnumMap<>(PartCategory.class), Collectors.toList()));
+        StringBuilder out = new StringBuilder("Options per slot (cheapest first):\n");
+        bySlot.forEach((slot, list) -> {
+            out.append(slot).append(":\n");
+            list.stream().limit(OVERVIEW_PER_SLOT).forEach(p -> out.append("  ").append(BuildSummary.part(p)).append("\n"));
+            if (list.size() > OVERVIEW_PER_SLOT) {
+                out.append("  (").append(list.size() - OVERVIEW_PER_SLOT).append(" more; search this category to see them)\n");
+            }
+        });
+        return out.toString().trim();
     }
 }

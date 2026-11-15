@@ -164,4 +164,58 @@ class AgentToolsTest {
         assertTrue(tool.execute(Map.of("query", "spanish bottom bracket")).content().contains("[Bottom bracket types"));
         assertTrue(tool.execute(Map.of("query", "pizza")).content().startsWith("No knowledge base articles"));
     }
+
+    @Test
+    void searchWithoutCategoryOrKeywordListsOptionsForEverySlot() {
+        when(partRepo.search(any())).thenReturn(List.of(
+                part(1, PartCategory.FRAME, "449.99", Map.of()),
+                part(2, PartCategory.FRAME, "379.99", Map.of()),
+                part(3, PartCategory.FORK, "99.99", Map.of())));
+
+        ToolResult r = registry.execute(call("search_catalog", Map.of("style", "STREET")));
+
+        assertTrue(r.success());
+        assertTrue(r.content().contains("FRAME:"));
+        assertTrue(r.content().contains("FORK:"));
+        // cheapest frame listed first within its slot
+        assertTrue(r.content().indexOf("id=2") < r.content().indexOf("id=1"));
+    }
+
+    @Test
+    void severalPartsCanBeAddedInOneCall() {
+        BikeBuild build = withId(new BikeBuild("Agent build"), 5);
+        when(buildRepo.findById(5L)).thenReturn(Optional.of(build));
+        when(partRepo.findById(1L)).thenReturn(Optional.of(part(1, PartCategory.FRAME, "449.99", Map.of("bbType", "MID"))));
+        when(partRepo.findById(7L)).thenReturn(Optional.of(part(7, PartCategory.BOTTOM_BRACKET, "39.99", Map.of("bbType", "MID"))));
+
+        ToolResult r = registry.execute(call("add_part_to_build", Map.of("build_id", 5, "parts", List.of(
+                Map.of("slot", "FRAME", "part_id", 1),
+                Map.of("slot", "BOTTOM_BRACKET", "part_id", 7)))));
+
+        assertTrue(r.success());
+        assertTrue(build.hasPart(PartCategory.FRAME));
+        assertTrue(build.hasPart(PartCategory.BOTTOM_BRACKET));
+        assertTrue(r.content().contains("Added 2 parts"));
+        verify(buildRepo, times(1)).save(build);
+    }
+
+    @Test
+    void oneBadPartInABatchIsReportedAndTheRestAreAdded() {
+        BikeBuild build = withId(new BikeBuild("Agent build"), 5);
+        when(buildRepo.findById(5L)).thenReturn(Optional.of(build));
+        when(partRepo.findById(1L)).thenReturn(Optional.of(part(1, PartCategory.FRAME, "449.99", Map.of())));
+        when(partRepo.findById(3L)).thenReturn(Optional.of(part(3, PartCategory.FORK, "99.99", Map.of())));
+        when(partRepo.findById(999L)).thenReturn(Optional.empty());
+
+        ToolResult r = registry.execute(call("add_part_to_build", Map.of("build_id", 5, "parts", List.of(
+                Map.of("slot", "FRAME", "part_id", 1),
+                Map.of("slot", "FORK", "part_id", 3),
+                Map.of("slot", "STEM", "part_id", 999)))));
+
+        assertTrue(r.success());
+        assertTrue(build.hasPart(PartCategory.FORK));
+        assertFalse(build.hasPart(PartCategory.STEM));
+        assertTrue(r.content().contains("Not added"));
+        assertTrue(r.content().contains("999"));
+    }
 }

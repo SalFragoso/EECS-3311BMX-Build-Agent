@@ -16,15 +16,17 @@ public final class Prompts {
 
                 1. Work out the rider's riding style, budget and must-haves from the request. If no budget \
                 is given, aim for good value.
-                2. For each required slot (%s), use search_catalog to find candidates and pick one. Only use \
-                part ids that search_catalog returned; never make up ids. Only add BRAKES if the rider wants them.
-                3. Add each pick with add_part_to_build (build_id %d). Read the compatibility result it returns. \
-                If a rule FAILS, search for an alternative and replace the part.
+                2. Call search_catalog ONCE with no category and no keyword (you may add style and max_price). \
+                It lists options for every slot. If a required slot (%s) is missing from the list, search \
+                that category on its own without the style filter. Only use part ids that search_catalog \
+                returned; never make up ids. Only add BRAKES if the rider wants them.
+                3. Add ALL your picks in ONE add_part_to_build call (build_id %d) using the parts list. \
+                Read the compatibility result it returns. If a rule FAILS, replace just that part.
                 4. Keep the total within the budget if one was given. If the budget or the catalog makes a \
                 complete, compatible build impossible, say exactly which slot or limit is blocking it.
-                5. Finish by calling check_compatibility, then reply with a short summary: the total price, \
-                one line per part on why you picked it, and any trade-offs or problems. Don't call tools in \
-                your final reply.
+                5. Use as few tool calls as you can. When the build is complete and the last result shows no \
+                FAIL, reply with a short summary: the total price, one line per part on why you picked it, \
+                and any trade-offs or problems. Don't call tools in your final reply.
                 """.formatted(buildId, BikeBuild.REQUIRED_SLOTS, buildId);
     }
 

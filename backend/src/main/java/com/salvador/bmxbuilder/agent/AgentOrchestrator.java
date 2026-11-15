@@ -24,6 +24,9 @@ import java.util.List;
 public class AgentOrchestrator {
 
     static final int MEMORY_MESSAGES = 10;
+    /** Tool results older than the newest few are shortened, so each request stays small (Groq's free tier counts tokens per minute). */
+    static final int FULL_TOOL_RESULTS = 3;
+    static final int SHORT_RESULT_CHARS = 160;
 
     private final LLMClient llm;
     private final ToolRegistry tools;
@@ -43,7 +46,7 @@ public class AgentOrchestrator {
         int tokens = 0;
 
         for (int step = 0; step < task.maxSteps(); step++) {
-            LLMResponse response = llm.complete(messages, specs);
+            LLMResponse response = llm.complete(compact(messages), specs);
             tokens += response.tokensUsed();
 
             if (!response.hasToolCalls()) {
@@ -71,6 +74,44 @@ public class AgentOrchestrator {
                 : task.userMessage() + "\n\n" + task.context();
         messages.add(ChatMessage.user(userText));
         return messages;
+    }
+
+    /**
+     * What the model is sent: the full conversation, but tool results older than the newest
+     * FULL_TOOL_RESULTS cut down to their first line. The latest build state is always in a recent result.
+     */
+    static List<ChatMessage> compact(List<ChatMessage> messages) {
+        int toolResults = 0;
+        for (ChatMessage m : messages) {
+            if (m.role() == ChatMessage.Role.TOOL) {
+                toolResults++;
+            }
+        }
+        int toShorten = toolResults - FULL_TOOL_RESULTS;
+        if (toShorten <= 0) {
+            return messages;
+        }
+        List<ChatMessage> out = new ArrayList<>(messages.size());
+        for (ChatMessage m : messages) {
+            if (m.role() == ChatMessage.Role.TOOL && toShorten > 0) {
+                toShorten--;
+                out.add(ChatMessage.tool(m.toolCallId(), shorten(m.content())));
+            } else {
+                out.add(m);
+            }
+        }
+        return out;
+    }
+
+    private static String shorten(String content) {
+        if (content == null) {
+            return "";
+        }
+        String first = content.lines().findFirst().orElse("");
+        if (first.length() > SHORT_RESULT_CHARS) {
+            first = first.substring(0, SHORT_RESULT_CHARS);
+        }
+        return first.length() == content.length() ? content : first + " ... (older result shortened)";
     }
 
     /** Only tools the task allows can run, even if the model names another one. */

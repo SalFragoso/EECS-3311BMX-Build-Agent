@@ -27,7 +27,7 @@ EECS3311 Software Design course project, Fall 2026.
 ## Stack
 
 - **Back end:** Java 21, Spring Boot 4 (REST API, JPA/Hibernate), PostgreSQL
-- **AI:** Groq-hosted Llama (`llama-3.3-70b-versatile` by default) through a custom tool-calling agent loop
+- **AI:** Groq-hosted `openai/gpt-oss-120b` (set with `groq.model`) through a custom tool-calling agent loop. Groq shut down the originally planned `llama-3.3-70b-versatile` in August 2026
 - **GUI:** React 18 + Vite, built into the Spring Boot app and served at `http://localhost:8080`
 - **CLI:** Spring Boot `CommandLineRunner`, enabled with the `cli` profile
 - **Tests:** JUnit 5 and Mockito
@@ -144,6 +144,8 @@ Errors come back as JSON, e.g. `{"error": "Build 9 not found"}`, with status 400
 ## How the agent works
 
 `AgentOrchestrator` runs a tool-calling loop. It sends the conversation and the tools allowed for the task to the LLM, runs any tools the model asks for through `ToolRegistry`, feeds the results back, and repeats until the model answers or a step limit is reached. The LLM only decides; every action goes through deterministic code (catalog search, `BikeBuild.setPart`, `CompatibilityChecker`, knowledge retrieval), and finished builds are re-checked without the LLM. `ConversationMemory` keeps recent turns so follow-up questions work. Every AI feature has a non-AI fallback if Groq can't be reached.
+
+Groq's free tier allows about 8,000 tokens a minute. When the agent goes over it, `GroqClient` waits as long as Groq asks and retries, and older tool results are shortened before each call. The planner searches every slot in one call and adds all its parts in one call. On a free key a full AI plan can still take a minute or two.
 
 ## Design patterns
 

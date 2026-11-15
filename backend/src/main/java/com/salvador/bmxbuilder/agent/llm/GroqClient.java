@@ -22,20 +22,48 @@ import java.util.Map;
  * Adapter pattern: the Adapter. Turns our ChatMessage/ToolSpec objects into Groq's
  * OpenAI-style chat completions JSON, and Groq's reply back into an LLMResponse.
  * The Groq HTTP API is the Adaptee; AgentOrchestrator is the Client.
+ *
+ * Groq's free tier allows about 8,000 tokens a minute, so a multi-step agent run hits the limit.
+ * On a 429 the client waits as long as Groq asks (up to MAX_WAIT) and tries again, up to MAX_RETRIES times.
  */
 @Component
 public class GroqClient implements LLMClient {
 
     private static final String BASE_URL = "https://api.groq.com/openai/v1";
+    static final String DEFAULT_MODEL = "openai/gpt-oss-120b";
+    static final int MAX_RETRIES = 6;
+    static final Duration MAX_WAIT = Duration.ofSeconds(60);
+    static final Duration DEFAULT_WAIT = Duration.ofSeconds(10);
+
+    /** How the client waits between retries. Swapped for a no-op in tests. */
+    interface Sleeper {
+        void sleep(Duration duration) throws InterruptedException;
+    }
+
+    /** One HTTP attempt. Throws RateLimited when Groq answers 429. */
+    interface Attempt {
+        String run();
+    }
+
+    /** Groq said "too many requests"; wait says how long it asked us to wait. */
+    static final class RateLimited extends RuntimeException {
+        final Duration wait;
+
+        RateLimited(Duration wait, Throwable cause) {
+            super("Groq rate limit reached", cause);
+            this.wait = wait;
+        }
+    }
 
     private final String apiKey;
     private final String model;
     private final RestClient http;
+    private final Sleeper sleeper;
     private final JsonMapper json = JsonMapper.builder().build();
 
     @Autowired
     public GroqClient(@Value("${groq.api-key:}") String apiKey,
-                      @Value("${groq.model:llama-3.3-70b-versatile}") String model) {
+                      @Value("${groq.model:" + DEFAULT_MODEL + "}") String model) {
         this(apiKey, model, RestClient.builder()
                 .baseUrl(BASE_URL)
                 .requestFactory(timeouts())
@@ -43,9 +71,14 @@ public class GroqClient implements LLMClient {
     }
 
     GroqClient(String apiKey, String model, RestClient http) {
+        this(apiKey, model, http, d -> Thread.sleep(d.toMillis()));
+    }
+
+    GroqClient(String apiKey, String model, RestClient http, Sleeper sleeper) {
         this.apiKey = apiKey;
         this.model = model;
         this.http = http;
+        this.sleeper = sleeper;
     }
 
     private static SimpleClientHttpRequestFactory timeouts() {
@@ -71,6 +104,52 @@ public class GroqClient implements LLMClient {
     }
 
     private String send(String requestJson) {
+        return withRetries(() -> post(requestJson));
+    }
+
+    /** Runs the attempt, waiting and retrying while Groq says we're over the rate limit. */
+    String withRetries(Attempt attempt) {
+        for (int retry = 0; ; retry++) {
+            try {
+                return attempt.run();
+            } catch (RateLimited e) {
+                if (e.wait.compareTo(MAX_WAIT) > 0) {
+                    // a long wait means a daily cap, not the per-minute one
+                    throw new LLMException("Groq's rate limit asks to wait " + e.wait.toSeconds()
+                            + "s, so the free daily limit is probably used up. Try again later.", e);
+                }
+                if (retry >= MAX_RETRIES) {
+                    throw new LLMException("Groq rate limit still reached after " + MAX_RETRIES
+                            + " retries. Wait a minute and try again.", e);
+                }
+                pause(e.wait);
+            }
+        }
+    }
+
+    private void pause(Duration wait) {
+        try {
+            sleeper.sleep(wait);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LLMException("Interrupted while waiting for Groq's rate limit", e);
+        }
+    }
+
+    /** Groq sends retry-after in seconds (sometimes with decimals). Missing or odd values use DEFAULT_WAIT. */
+    static Duration retryAfter(String header) {
+        if (header == null || header.isBlank()) {
+            return DEFAULT_WAIT;
+        }
+        try {
+            double seconds = Double.parseDouble(header.trim());
+            return seconds <= 0 ? Duration.ofSeconds(1) : Duration.ofMillis((long) Math.ceil(seconds * 1000) + 250);
+        } catch (NumberFormatException e) {
+            return DEFAULT_WAIT;
+        }
+    }
+
+    private String post(String requestJson) {
         try {
             return http.post()
                     .uri("/chat/completions")
@@ -82,7 +161,11 @@ public class GroqClient implements LLMClient {
         } catch (RestClientResponseException e) {
             int status = e.getStatusCode().value();
             if (status == 429) {
-                throw new LLMException("Groq rate limit reached. Wait a minute and try again.", e);
+                String header = (e.getResponseHeaders() == null) ? null : e.getResponseHeaders().getFirst("retry-after");
+                throw new RateLimited(retryAfter(header), e);
+            }
+            if (status == 413) {
+                throw new LLMException("The request was too large for Groq's free-tier token limit (413).", e);
             }
             if (status == 401) {
                 throw new LLMException("Groq rejected the API key (401). Check GROQ_API_KEY in backend/.env.", e);
@@ -117,7 +200,9 @@ public class GroqClient implements LLMClient {
             }
             toolChoice = "auto";
         }
-        return new GroqRequest(model, out, groqTools, toolChoice, 0.2);
+        // gpt-oss models think before answering; low effort keeps each step well under the free-tier limit
+        String reasoningEffort = (model != null && model.startsWith("openai/gpt-oss")) ? "low" : null;
+        return new GroqRequest(model, out, groqTools, toolChoice, 0.2, reasoningEffort);
     }
 
     // ---------- mapping: Groq JSON -> our types ----------
@@ -157,7 +242,8 @@ public class GroqClient implements LLMClient {
                        List<GroqMessage> messages,
                        List<GroqTool> tools,
                        @JsonProperty("tool_choice") String toolChoice,
-                       Double temperature) {
+                       Double temperature,
+                       @JsonProperty("reasoning_effort") String reasoningEffort) {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
