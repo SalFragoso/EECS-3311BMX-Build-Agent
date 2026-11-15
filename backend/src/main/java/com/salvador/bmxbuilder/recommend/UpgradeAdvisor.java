@@ -168,7 +168,7 @@ public class UpgradeAdvisor {
         String styleNote = styleNote(candidate, rec.getStrategy().style());
         if (clashes.isEmpty()) {
             return new Option(0, List.of(slot), List.of(name(current)), List.of(candidate), candidate.getPrice(), g,
-                    (current == null ? "Replaces a stock part; " : "Better than your " + current.getName() + "; ") + styleNote);
+                    capitalize(styleNote));   // the page already says what it replaces
         }
         // Dependent parts: find the other slot in the failing rule and a part there that makes everything fit
         RuleResult clash = clashes.get(0);
@@ -202,6 +202,10 @@ public class UpgradeAdvisor {
             }
         }
         return null;
+    }
+
+    private static String capitalize(String text) {
+        return text.isEmpty() ? text : Character.toUpperCase(text.charAt(0)) + text.substring(1);
     }
 
     private static String styleNote(Part p, RidingStyle style) {

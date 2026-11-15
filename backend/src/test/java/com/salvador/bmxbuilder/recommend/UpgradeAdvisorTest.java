@@ -66,7 +66,7 @@ class UpgradeAdvisorTest {
 
         assertEquals(1, options.size());
         assertEquals(List.of("stock part"), options.get(0).replacing());
-        assertTrue(options.get(0).reason().startsWith("Replaces a stock part"));
+        assertEquals("Made for street", options.get(0).reason());   // "replaces stock part" is shown from replacing, not repeated here
     }
 
     @Test

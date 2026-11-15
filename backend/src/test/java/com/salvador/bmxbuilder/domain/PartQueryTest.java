@@ -51,4 +51,11 @@ class PartQueryTest {
         PartQuery q = new PartQuery(null, null, null, null, RidingStyle.RACE);
         assertFalse(q.matches(frame("449.99")));
     }
+
+    @Test
+    void keywordCanSpanBrandAndModel() {
+        assertTrue(new PartQuery("Cult hawk", null, null, null, null).matches(frame("449.99")));
+        assertTrue(new PartQuery("hawk cult", null, null, null, null).matches(frame("449.99")));
+        assertFalse(new PartQuery("cult begin", null, null, null, null).matches(frame("449.99")));
+    }
 }
