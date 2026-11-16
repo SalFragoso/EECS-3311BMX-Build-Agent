@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>2610</w>
+      <h>1380</h>
+    </coordinates>
+    <panel_attributes>title=SD08 (Stage 2): Plan Staged Upgrades (F11, UC11)
+obj=Rider~r ACTOR
+obj=:UpgradePage~ui
+obj=:AgentController~ctl
+obj=:BuildService~svc
+obj=:BuildRepository~brepo
+obj=:UpgradeAdvisor~adv
+obj=:AgentOrchestrator~orch
+obj=:PartRecommender~rec
+obj=:CompatibilityChecker~chk
+r-&gt;&gt;&gt;ui : description or saved build, budget, style; on=r; on=ui
+ui-&gt;&gt;&gt;ctl : upgrade(buildId, description, budget, style); on=ctl
+ctl-&gt;&gt;&gt;svc : planUpgrade(buildId, description, budget, style); on=svc
+combinedFragment=opt~d svc chk
+svc:[bike described in words]
+svc-&gt;&gt;&gt;adv : matchDescription(text, catalog); on=adv
+adv-&gt;&gt;&gt;orch : run(matcher prompt, search_catalog); on=orch
+orch.&gt;adv : JSON: matched parts + stock slots; off=orch
+adv.&gt;svc : Match; off=adv
+svc-&gt;&gt;&gt;brepo : save("My current bike"); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+--=d
+svc-&gt;&gt;&gt;adv : advise(bike, budget, style, catalog); on=adv
+adv-&gt;&gt;&gt;rec : forStyle(style); on=rec
+rec.&gt;adv : PartRecommender; off=rec
+combinedFragment=loop~o adv chk
+adv:[each catalog part better than the current one]
+adv-&gt;&gt;&gt;rec : score(candidate); on=rec
+rec.&gt;adv : score; off=rec
+adv-&gt;&gt;&gt;chk : check(bike.withPart(candidate)); on=chk
+chk.&gt;adv : CompatibilityReport; off=chk
+adv-&gt;adv + : option, bundle with a partner part, or frame note
+--=o
+adv-&gt;adv + : selectWithinBudget(options)
+adv-&gt;&gt;&gt;orch : run(stager prompt, options); on=orch
+orch.&gt;adv : JSON: stages; off=orch
+adv-&gt;&gt;&gt;chk : validStages(): check after each stage; on=chk
+chk.&gt;adv : CompatibilityReport; off=chk
+combinedFragment=alt~v adv chk
+adv:[stages valid]
+adv-&gt;adv + : use the AI stages
+..=v
+adv:[invalid or Groq unavailable]
+adv-&gt;adv + : valueStages(options)
+--=v
+adv.&gt;svc : Plan(stages, notes, total); off=adv
+svc.&gt;ctl : Plan; off=svc
+ctl.&gt;ui : JSON; off=ctl
+ui.&gt;r : stages with cost, notes, Apply stage; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

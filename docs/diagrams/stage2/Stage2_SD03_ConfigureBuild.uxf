@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>2610</w>
+      <h>1318</h>
+    </coordinates>
+    <panel_attributes>title=SD03 (Stage 2): Configure Build with Live Check and Preview (F04, F05, F08)
+obj=Rider~r ACTOR
+obj=:BuildPage~ui
+obj=:Preview\n&lt;&lt;React&gt;&gt;~pv
+obj=:BuildController~ctl
+obj=:BuildService~svc
+obj=:BuildRepository~brepo
+obj=:BikeBuild~b
+obj=:CompatibilityMonitor~mon
+obj=:CompatibilityChecker~chk
+r-&gt;&gt;&gt;ui : open slot picker; on=r; on=ui
+ui-&gt;&gt;&gt;ctl : compatibleParts(id, slot); on=ctl
+ctl-&gt;&gt;&gt;svc : compatibleParts(id, slot); on=svc
+combinedFragment=loop~c svc chk
+svc:[each part in the slot's category]
+svc-&gt;&gt;&gt;b : withPart(candidate); on=b
+b.&gt;svc : BikeBuild copy; off=b
+svc-&gt;&gt;&gt;chk : isCompatible(copy); on=chk
+chk.&gt;svc : boolean; off=chk
+--=c
+svc.&gt;ctl : parts that fit; off=svc
+ctl.&gt;ui : JSON; off=ctl
+ui-&gt;ui + : mark Fits / Won't fit
+r-&gt;&gt;&gt;ui : choose part
+ui-&gt;&gt;&gt;ctl : selectPart(id, slot, partId); on=ctl
+ctl-&gt;&gt;&gt;svc : selectPart(id, slot, partId); on=svc
+svc-&gt;&gt;&gt;brepo : findById(id); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc-&gt;&gt;&gt;b : addListener(monitor); on=b
+svc-&gt;&gt;&gt;b : setPart(slot, part)
+b-&gt;&gt;&gt;mon : onBuildChanged(event); on=mon
+mon-&gt;&gt;&gt;chk : check(build); on=chk
+chk.&gt;mon : CompatibilityReport; off=chk
+mon.&gt;b : stored as latest report; off=mon
+b.&gt;svc : done; off=b
+svc-&gt;&gt;&gt;brepo : save(build); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc-&gt;&gt;&gt;b : getRoot().getPrice(), totalWeight(); on=b
+b.&gt;svc : totals from the Assembly tree; off=b
+svc-&gt;&gt;&gt;mon : latestReport(); on=mon
+mon.&gt;svc : CompatibilityReport; off=mon
+svc.&gt;ctl : BuildView; off=svc
+ctl.&gt;ui : JSON; off=ctl
+ui-&gt;&gt;&gt;pv : render(build); on=pv
+pv-&gt;pv + : draw SVG layers, dashed empty slots
+pv.&gt;ui : drawing; off=pv
+ui.&gt;r : parts, totals, rule results, preview; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>

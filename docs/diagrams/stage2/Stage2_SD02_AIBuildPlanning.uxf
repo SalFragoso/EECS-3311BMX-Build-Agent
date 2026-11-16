@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLSequenceAllInOne</id>
+    <coordinates>
+      <x>0</x>
+      <y>0</y>
+      <w>3480</w>
+      <h>1845</h>
+    </coordinates>
+    <panel_attributes>title=SD02 (Stage 2): Plan Build with AI Agent (F02, UC02)
+obj=Rider~r ACTOR
+obj=:PlannerPage~ui
+obj=:AgentController~ctl
+obj=:BuildService~svc
+obj=:BuildRepository~brepo
+obj=:AgentOrchestrator~orch
+obj=:GroqClient~llm
+obj=Groq API\n&lt;&lt;external&gt;&gt;~api
+obj=:ToolRegistry~reg
+obj=:SearchCatalogTool~st
+obj=:AddPartToBuildTool~at
+obj=:CompatibilityChecker~chk
+r-&gt;&gt;&gt;ui : submit("street bike under $2000, no brakes"); on=r; on=ui
+ui-&gt;&gt;&gt;ctl : plan(request, name); on=ctl
+ctl-&gt;&gt;&gt;svc : planBuild(request, name); on=svc
+svc-&gt;&gt;&gt;brepo : save(new BikeBuild(name)); on=brepo
+brepo.&gt;svc : BikeBuild(id); off=brepo
+svc-&gt;&gt;&gt;orch : run(AgentTask: planner prompt, 3 tools, maxSteps 25); on=orch
+combinedFragment=loop~lp orch chk
+orch:[no final answer and step &lt; 25]
+orch-&gt;orch + : compact(messages)
+orch-&gt;&gt;&gt;llm : complete(messages, toolSpecs); on=llm
+combinedFragment=loop~rt llm api
+llm:[429 rate limited, at most 6 retries]
+llm-&gt;&gt;&gt;api : POST /chat/completions; on=api
+api.&gt;llm : 429 + retry-after; off=api
+llm-&gt;llm + : wait retry-after
+--=rt
+llm-&gt;&gt;&gt;api : POST /chat/completions; on=api
+api.&gt;llm : JSON; off=api
+llm.&gt;orch : LLMResponse; off=llm
+combinedFragment=alt~tc orch chk
+orch:[hasToolCalls()]
+orch-&gt;&gt;&gt;reg : execute(call); on=reg
+combinedFragment=alt~which reg chk
+reg:[search_catalog, no category]
+reg-&gt;&gt;&gt;st : execute(args); on=st
+st.&gt;reg : ToolResult(options for every slot); off=st
+..=which
+reg:[add_part_to_build with parts list]
+reg-&gt;&gt;&gt;at : execute(args); on=at
+at-&gt;&gt;&gt;chk : check(build); on=chk
+chk.&gt;at : CompatibilityReport; off=chk
+at.&gt;reg : ToolResult(build + report); off=at
+--=which
+reg.&gt;orch : ToolResult; off=reg
+orch-&gt;orch + : append tool result
+..=tc
+orch:[final answer]
+orch-&gt;orch + : remember(answer)
+--=tc
+--=lp
+orch.&gt;svc : AgentResult(summary, steps, tokens); off=orch
+svc-&gt;&gt;&gt;brepo : findById(id); on=brepo
+brepo.&gt;svc : BikeBuild; off=brepo
+svc-&gt;&gt;&gt;chk : check(build); on=chk
+chk.&gt;svc : CompatibilityReport; off=chk
+combinedFragment=alt~res svc chk
+svc:[agent finished]
+svc.&gt;ctl : PlanResult(build, summary, steps, tokens); off=svc
+..=res; on=svc
+svc:[LLMException: Groq down or daily cap]
+svc.&gt;ctl : PlanResult(partial build, message); off=svc
+--=res
+ctl.&gt;ui : JSON; off=ctl
+ui.&gt;r : build, compatibility, summary; off=ui
+off=r</panel_attributes>
+    <additional_attributes></additional_attributes>
+  </element>
+</diagram>
