@@ -6,6 +6,7 @@ EECS3311 Software Design course project, Fall 2026.
 
 - **Stage 1 design report:** [docs/Stage1-Report.md](docs/Stage1-Report.md)
 - **Stage 2 implementation report:** [`docs/stage2-report.pdf`](docs/stage2-report.pdf) (also as [Markdown](docs/stage2-report.md))
+- **Demo videos:** [GUI walkthrough](https://youtu.be/-6DjryrGpz4) and [CLI walkthrough](https://youtu.be/P5qlGrulmjk). Timestamps for each feature are in section 7 of the report.
 - **UML diagrams (UMLet sources and images):** [docs/diagrams/](docs/diagrams/)
 
 ## Features
